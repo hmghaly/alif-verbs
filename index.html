@@ -16,17 +16,91 @@
 </head>
 
 <script type="text/javascript">
+var arabic_var=null //"msa" //ega lva sya lba maa saa gla iqa kwa lya sda dza tna 
+var cur_screen=null
+var user={}
+var quiz={}
+var session={}
+
+var cur_address=window.location.pathname //"/dev/alif-verbs/"
+
+
+function parse_qs(){
+	qs_dict={}
+	qs=window.location.search.slice(1)
+	amp_split=qs.split("&")
+	for (const am of amp_split){
+		eq_split=am.split("=")
+		if (eq_split.length==2)  qs_dict[eq_split[0]]=eq_split[1] //we should strip/trim spaces if any
+	}
+	return qs_dict
+}
+
+function join_qs(data_dict){
+	items=[]
+	for (key in data_dict){
+		val=data_dict[key]
+		cur_item=key+"="+val
+		items.push(cur_item)
+	}
+	return items.join("&")
+}
 function init(){
 	console.log("Hello")
+	cur_qs_dict=parse_qs()
+	arabic_var=cur_qs_dict.arabic_var
+	cur_screen=cur_qs_dict.screen
+	console.log(cur_qs_dict,arabic_var)
+	//cur_qs_dict["ts"]="ab"
+	joined=join_qs(cur_qs_dict)
+	console.log(joined)
+	if (cur_screen!=null){
+		screen_selector="#"+cur_screen
+		$(".screen").hide()
+		$(screen_selector).show()	
+		gsap.from(screen_selector, {duration: 1, x: -1000});
+		//gsap.to(screen_selector, {duration: 1, x: 0});		
+	}
+
+	
+	//
+}
+
+$(document).ready(function(){
+	$(".screen").hide()
+	$("#intro_div").show()
+
+})
+
+function go2menu(){
+	$(".screen").hide()
+	menu_selector="#arabic_selection_menu"
+	if (arabic_var!=null) menu_selector="#main_menu"
+	// gsap.to(menu_selector, {duration: 0, x: -1000});
+	// gsap.to(menu_selector, {duration: 1, x: 0});
+	gsap.from(menu_selector, {duration: 0, x: -1000});
+	//from
+	$(menu_selector).show()	
+}
+
+function check_answer(obj1){
+	cur_selector="#"+obj1.id
+	//gsap.to(cur_selector, {duration: 1, x: 100});
+	gsap.to(obj1, {duration: 1, x: 100});
+	//gsap.to(cur_selector, {duration: 0.5, x: 0});
+}
+
+function move_item(){
+	gsap.to("#main_menu", {duration: 1, x: 100});
 }
 </script>
 
-<body>
+<body onload="init()">
 
-<div class="jumbotron text-center">
+<!-- <div class="jumbotron text-center">
   <h1>ALIF Verbs 4</h1>
   <p>Learn Verbs in Arabic and in Dialects!</p> 
-</div>
+</div> -->
   
 <div class="container">
   <div class="row">
@@ -36,13 +110,21 @@ function init(){
       <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p> -->
     </div>
     <div class="col-sm-4 text-center" id="main_div" style="background-color:lavender;">
-    	<div id="arabic_selection_menu">
+    	<div id="intro_div" class="screen">
+	      <h5>ALIF Verbs</h5>
+	      <p>Learn Verbs in Arabic and in Dialects!</p>
+	      <p><button class="btn btn-primary btn-block" onclick="go2menu()">Continue</button></p>
+
+	      <p>By Champolu</p>
+
+    	</div>
+    	<div id="arabic_selection_menu" class="screen">
 	      <h5>Which Arabic to learn?</h5>
-	      <p><button class="btn btn-primary btn-block">Modern Standard Arabic</button></p>
+	      <p><button class="btn btn-primary btn-block" onclick="move_item()">Modern Standard Arabic</button></p>
 	      <p><button class="btn btn-primary btn-block">Egyptian Arabic</button></p>
     	</div>
 
-    	<div id="main_menu">
+    	<div id="main_menu" class="screen">
 	      <h5>Get Started!</h5>
 	      <p>Streak - Minutes to Streak</p>
 	      <p><button class="btn btn-primary btn-block">Tutorial</button></p>
@@ -50,58 +132,67 @@ function init(){
 	      <p>Help Button - Feedback Button</p>
     	</div>
 
-    	<div id="tutorial_menu">
+    	<div id="tutorial_menu" class="screen">
 	      <h5>Tutorials</h5>
 	      <p>Videos</p>
 	      <p><button class="btn btn-primary btn-block">Verb Tenses</button></p>
 	      <p><button class="btn btn-primary btn-block">Verb Conjugations</button></p>
 	      <p><button class="btn btn-primary btn-block">Verb Lists</button></p>
     	</div>
-   		<div id="progress_div">
+   		<div id="progress_div" class="screen">
 	      <h5>My Progress</h5>
 	      <p>Sessions - Accuracy</p>
 	      <p>Badges and Achievements</p>
 	      <p>My Mistakes</p>
     	</div>
-   		<div id="quiz_div">
+   		<div id="quiz_div" class="screen">
 	      <h5>Quiz</h5>
 	      <p>Top Nav - score - timer - accuracy - menu</p>
-	      <p>Question Prompt</p>
-	      <p>Question Item</p>
-	      <p>Answer Space</p>
-	      <p>Options</p>
+	      <p id="quiz_prompt">Prompt: What does this verb mean?</p>
+	      <p id="quiz_item">yel3ab</p>
+	      <p id="quiz_answer">Answer Space</p>
+	      <div id="quiz_options">
+			<button class="btn btn-primary btn-block" id="quiz_option0" onclick="check_answer(this)">Walk</button>
+			<button class="btn btn-primary btn-block" id="quiz_option1" onclick="check_answer(this)">Play</button>
+			<button class="btn btn-primary btn-block" id="quiz_option2" onclick="check_answer(this)">Eat</button>
+			<button class="btn btn-primary btn-block" id="quiz_option3" onclick="check_answer(this)">Sleep</button>
+	      </div>
+	      <p id="quiz_footer">Footer</p>
     	</div>
-   		<div id="after_game_div">
+   		<div id="after_game_div" class="screen">
 	      <h5>Game Over</h5>
 	      <p>Your Score</p>
 	      <p>Your mistakes</p>
 	      <p>High Score?</p>
 	      <p>Back to Menu</p>
     	</div>
-   		<div id="profile_div">
+   		<div id="profile_div" class="screen">
 	      <h5>Profile</h5>
 	      <p>Choose a username</p>
 	      <p>Choose avatar</p>
     	</div>   
 
-   		<div id="settings_div">
+   		<div id="settings_div" class="screen">
 	      <h5>Settings</h5>
 	      <p>Audio settings</p>
 	      <p>Layout settings</p>
     	</div>  
 
-   		<div id="login_signup_div">
+   		<div id="login_signup_div" class="screen">
 	      <h5>Login/Signup</h5>
 	      <p>Continue With Google</p>
 	      <p>Continue With Facebook</p>
 	      <p>Continue With email</p>
     	</div>     
-   		<div id="about_div">
+   		<div id="about_div" class="screen">
 	      <h5>About this game</h5>
 	      <p>Acknowledgments</p>
     	</div>  
-
-   		<div id="feedback_div">
+   		<div id="leaderboard_div" class="screen">
+	      <h5>Leaderboard </h5>
+	      <p>High Scores</p>
+    	</div>  
+   		<div id="feedback_div" class="screen">
 	      <h5>Feedback</h5>
 	      <p>Your feedback</p>
     	</div> 
