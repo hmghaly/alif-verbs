@@ -10,6 +10,8 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
 
+  <script src="js/script.js"></script>
+
 <!--   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1461464026864680"
      crossorigin="anonymous"></script> -->
 
@@ -20,47 +22,66 @@ var arabic_var=null //"msa" //ega lva sya lba maa saa gla iqa kwa lya sda dza tn
 var cur_screen=null
 var user={}
 var quiz={}
+var answer={}
 var session={}
+var app_name="alif-verbs"
+// nav_dict["arabic_var"]=null
+// nav_dict["screen"]=null
+// nav_dict["last_active"]=Date.now();
+time_now=Date.now()
+//set_local_strorage(app_name,"nav_dict",nav_dict)
+var nav_dict=get_local_strorage(app_name,"nav_dict")
+if (nav_dict==null || nav_dict==undefined) var nav_dict={}
+
+// if (nav_dict.last_active==null) nav_dict.last_active=time_now;
+// time_diff_from_last_active=time_now-nav_dict.last_active
+// console.log("time diff",time_diff_from_last_active)
+
+// if (nav_dict.last_active==null) nav_dict.screen=null
+// else if (time_now-nav_dict.last_active>120000) nav_dict.screen=null //for a idle time > 120 seconds, reset the navigation screen
+//nav_dict["last_active"]=Date.now();
+//set_local_strorage(app_name,"nav_dict",nav_dict)
 
 var cur_address=window.location.pathname //"/dev/alif-verbs/"
 
 
-function parse_qs(){
-	qs_dict={}
-	qs=window.location.search.slice(1)
-	amp_split=qs.split("&")
-	for (const am of amp_split){
-		eq_split=am.split("=")
-		if (eq_split.length==2)  qs_dict[eq_split[0]]=eq_split[1] //we should strip/trim spaces if any
-	}
-	return qs_dict
-}
+// function parse_qs(){
+// 	qs_dict={}
+// 	qs=window.location.search.slice(1)
+// 	amp_split=qs.split("&")
+// 	for (const am of amp_split){
+// 		eq_split=am.split("=")
+// 		if (eq_split.length==2)  qs_dict[eq_split[0]]=eq_split[1] //we should strip/trim spaces if any
+// 	}
+// 	return qs_dict
+// }
 
-function join_qs(data_dict){
-	items=[]
-	for (key in data_dict){
-		val=data_dict[key]
-		cur_item=key+"="+val
-		items.push(cur_item)
-	}
-	return items.join("&")
-}
+// function join_qs(data_dict){
+// 	items=[]
+// 	for (key in data_dict){
+// 		val=data_dict[key]
+// 		cur_item=key+"="+val
+// 		items.push(cur_item)
+// 	}
+// 	return items.join("&")
+// }
 function init(){
 	console.log("Hello")
-	cur_qs_dict=parse_qs()
-	arabic_var=cur_qs_dict.arabic_var
-	cur_screen=cur_qs_dict.screen
-	console.log(cur_qs_dict,arabic_var)
-	//cur_qs_dict["ts"]="ab"
-	joined=join_qs(cur_qs_dict)
-	console.log(joined)
-	if (cur_screen!=null){
-		screen_selector="#"+cur_screen
-		$(".screen").hide()
-		$(screen_selector).show()	
-		gsap.from(screen_selector, {duration: 1, x: -1000});
-		//gsap.to(screen_selector, {duration: 1, x: 0});		
-	}
+	// cur_qs_dict=parse_qs()
+	// arabic_var=cur_qs_dict.arabic_var
+	// cur_screen=cur_qs_dict.screen
+	// console.log(cur_qs_dict,arabic_var)
+	// //cur_qs_dict["ts"]="ab"
+	// joined=join_qs(cur_qs_dict)
+	// console.log(joined)
+	if (cur_screen!=null) show_screen(cur_screen)
+	// {
+	// 	screen_selector="#"+cur_screen
+	// 	$(".screen").hide()
+	// 	$(screen_selector).show()	
+	// 	gsap.from(screen_selector, {duration: 1, x: -1000});
+	// 	//gsap.to(screen_selector, {duration: 1, x: 0});		
+	// }
 
 	
 	//
@@ -72,26 +93,111 @@ $(document).ready(function(){
 
 })
 
-function go2menu(){
+function show_screen(screen_id){
+	screen_selector="#"+screen_id
 	$(".screen").hide()
-	menu_selector="#arabic_selection_menu"
-	if (arabic_var!=null) menu_selector="#main_menu"
-	// gsap.to(menu_selector, {duration: 0, x: -1000});
-	// gsap.to(menu_selector, {duration: 1, x: 0});
-	gsap.from(menu_selector, {duration: 0, x: -1000});
-	//from
-	$(menu_selector).show()	
+	$(screen_selector).show()	
+	gsap.from(screen_selector, {duration: 1, x: -1000});  //or any other animation	
 }
 
-function check_answer(obj1){
-	cur_selector="#"+obj1.id
-	//gsap.to(cur_selector, {duration: 1, x: 100});
-	gsap.to(obj1, {duration: 1, x: 100});
+function go2menu(){
+	$(".screen").hide()
+	nav_dict.screen="arabic_selection_menu"
+	if (nav_dict.arabic_var!=null) nav_dict.screen="main_menu"
+	nav_dict["last_active"]=Date.now()
+	set_local_strorage(app_name,"nav_dict",nav_dict)
+	show_screen(nav_dict.screen)
+}
+
+function check_answer(evt){
+	trg=evt.currentTarget
+	console.log(trg)
+	if (trg.id==answer.correct) is_correct(trg)
+	else is_wrong(trg)
+	
+	// //cur_selector="#"+obj1.id
+	// //gsap.to(cur_selector, {duration: 1, x: 100});
+	// gsap.to(obj1, {duration: 1, x: 100});
 	//gsap.to(cur_selector, {duration: 0.5, x: 0});
 }
 
-function move_item(){
-	gsap.to("#main_menu", {duration: 1, x: 100});
+function next_q(){
+	quiz.i+=1
+	deploy_question()
+}
+
+function is_correct(trg1){
+	trg1.style.backgroundColor="green"
+	//var tl = new TimelineMax();
+	// tl = new TimelineMax({delay:0});
+	// tl.to(trg1, {duration: 1, x: 100});
+	// tl = new TimelineMax({delay:1});
+	gsap.to(trg1, {duration: 1, y: -50,onComplete:next_q});
+}
+
+function is_wrong(trg1){
+	trg1.style.backgroundColor="red"
+	TweenMax.to(trg1, 0.1, {x:"+=20", yoyo:true, repeat:3});
+
+	// tl = new TimelineMax({delay:0});
+	// tl.to(trg1, {duration: 0.5, x: 100});
+	// tl = new TimelineMax({delay:0.5});
+	// tl.to(trg1, {duration: 0.5, x: 0});
+
+}
+// function move_item(){
+// 	gsap.to("#main_menu", {duration: 1, x: 100});
+// }
+
+function select_arabic(obj1){
+	console.log(obj1.name)
+	nav_dict.arabic_var=obj1.name
+	set_local_strorage(app_name,"nav_dict",nav_dict)
+	go2menu()
+}
+
+function go2tutorial(){
+	show_screen("tutorial_menu")
+}
+
+function start_quiz(){
+	show_screen("quiz_div")
+	gen_quiz()
+	deploy_question()
+}
+
+function gen_quiz(){
+	question={}
+	question.prompt="What verb is this?"
+	question.item="yal3ab"
+	question.image=""
+	question.audio=""
+	question.correct="play"
+	question.options=[{id:"play",label:"play"},
+	{id:"eat",label:"eat"},
+	{id:"drink",label:"drink"},
+	{id:"walk",label:"walk"},
+	]
+	quiz.question_list=[question]
+	quiz.i=0	
+}
+
+function deploy_question(){
+	cur_question=quiz.question_list[quiz.i]
+	answer.correct=cur_question.correct
+	//quiz_prompt-quiz_item - quiz_options
+	$$("quiz_prompt").innerHTML=cur_question.prompt
+	$$("quiz_item").innerHTML=cur_question.item
+	options_div=$$("quiz_options")
+	options_div.innerHTML=""
+	for (const op of cur_question.options){
+		console.log(op)
+		var op_btn=create_el_basic("button",options_div)
+		op_btn.className="btn btn-block btn-primary"
+		op_btn.innerHTML=op.label
+		op_btn.id=op.id
+		op_btn.onclick=check_answer
+	}
 }
 </script>
 
@@ -120,15 +226,15 @@ function move_item(){
     	</div>
     	<div id="arabic_selection_menu" class="screen">
 	      <h5>Which Arabic to learn?</h5>
-	      <p><button class="btn btn-primary btn-block" onclick="move_item()">Modern Standard Arabic</button></p>
-	      <p><button class="btn btn-primary btn-block">Egyptian Arabic</button></p>
+	      <p><button class="btn btn-primary btn-block" name="msa" onclick="select_arabic(this)">Modern Standard Arabic</button></p>
+	      <p><button class="btn btn-primary btn-block" name="ega" onclick="select_arabic(this)">Egyptian Arabic</button></p>
     	</div>
 
     	<div id="main_menu" class="screen">
 	      <h5>Get Started!</h5>
 	      <p>Streak - Minutes to Streak</p>
-	      <p><button class="btn btn-primary btn-block">Tutorial</button></p>
-	      <p><button class="btn btn-primary btn-block">Start Quiz!</button></p>
+	      <p><button class="btn btn-primary btn-block" onclick="go2tutorial()">Tutorial</button></p>
+	      <p><button class="btn btn-primary btn-block" onclick="start_quiz()">Start Quiz!</button></p>
 	      <p>Help Button - Feedback Button</p>
     	</div>
 
@@ -138,6 +244,8 @@ function move_item(){
 	      <p><button class="btn btn-primary btn-block">Verb Tenses</button></p>
 	      <p><button class="btn btn-primary btn-block">Verb Conjugations</button></p>
 	      <p><button class="btn btn-primary btn-block">Verb Lists</button></p>
+
+	      <p><button class="btn btn-primary btn-block" onclick="go2menu()">Main Menu</button></p>
     	</div>
    		<div id="progress_div" class="screen">
 	      <h5>My Progress</h5>
@@ -146,18 +254,29 @@ function move_item(){
 	      <p>My Mistakes</p>
     	</div>
    		<div id="quiz_div" class="screen">
-	      <h5>Quiz</h5>
-	      <p>Top Nav - score - timer - accuracy - menu</p>
-	      <p id="quiz_prompt">Prompt: What does this verb mean?</p>
+   			<div class="row">
+   				<div class="col">Menu</div>
+   				<div class="col">Timer</div>
+   				<div class="col">Score</div>
+   				<div class="col">Accuracy</div>
+   			</div>
+
+
+	      <p id="quiz_prompt">Prompt: What does this verb mean?</p> 
 	      <p id="quiz_item">yel3ab</p>
-	      <p id="quiz_answer">Answer Space</p>
+	      <p id="quiz_answer"></p>
 	      <div id="quiz_options">
 			<button class="btn btn-primary btn-block" id="quiz_option0" onclick="check_answer(this)">Walk</button>
 			<button class="btn btn-primary btn-block" id="quiz_option1" onclick="check_answer(this)">Play</button>
 			<button class="btn btn-primary btn-block" id="quiz_option2" onclick="check_answer(this)">Eat</button>
 			<button class="btn btn-primary btn-block" id="quiz_option3" onclick="check_answer(this)">Sleep</button>
 	      </div>
-	      <p id="quiz_footer">Footer</p>
+   			<div class="row">
+   				<div class="col"></div>
+   				<div class="col">Footer</div>
+   				<div class="col">Hints</div>
+   			</div>
+
     	</div>
    		<div id="after_game_div" class="screen">
 	      <h5>Game Over</h5>
