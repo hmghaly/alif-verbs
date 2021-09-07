@@ -16,6 +16,14 @@ function img(src,onload=null,id=""){ //create img object
     return new_img
 }
 
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function len(list1){
+    return list1.length
+}
+
 function load_images(img_list,callback_fn=null){ //loading a group of images, adding them to images variable/namespace
     images.loaded_images=[] //we need to have a global variable called "images"
     for (im in img_list){
@@ -156,6 +164,14 @@ function post_data(link,obj2upload,callback_fn){
       // .catch(error => {
       //     console.error('Error:', error);
       //   });  
+}
+
+function read_file(file_path,callback_fn){
+    fetch(file_path)
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        callback_fn(data)
+      })      
 }
 
 function check_email_str(email_str){
@@ -350,4 +366,36 @@ function join_qs(data_dict){
         items.push(cur_item)
     }
     return items.join("&")
+}
+
+function seconds2str(seconds){
+    n_seconds=seconds%60
+    n_minutes=(seconds-n_seconds)/60
+    n_minutes_str=""+n_minutes
+    n_seconds_str=""+n_seconds
+    if (n_seconds_str.length==1) n_seconds_str="0"+n_seconds_str
+    timer_str=n_minutes_str+":"+n_seconds_str   
+    return timer_str
+}
+
+function start_timer(timer_id,callback_fn,interval=1000){ //
+    timer_str=seconds2str(timer.remianing_time)
+    $$(timer_id).innerHTML=timer_str
+    timer.starter = setInterval(function(){
+        //console.log(timer.remianing_time)
+        timer.remianing_time-=interval/1000 //milliseconds
+        //console.log(timer.remianing_time)
+        timer_str=seconds2str(timer.remianing_time)
+        $$(timer_id).innerHTML=timer_str
+        if (timer.remianing_time<=0) {
+            callback_fn()
+            clearInterval(timer.starter)
+        } 
+    }, interval);
+
+    //console.log(timer_str)
+}
+
+function pause_timer(){
+    clearInterval(timer.starter)
 }

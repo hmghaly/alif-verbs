@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
+  <link rel="stylesheet" href="css/font-awesome-4.7.0/css/font-awesome.min.css">
 
   <script src="js/script.js"></script>
 
@@ -24,6 +25,9 @@ var user={}
 var quiz={}
 var answer={}
 var session={}
+var timer={}
+var game_data={}
+
 var app_name="alif-verbs"
 // nav_dict["arabic_var"]=null
 // nav_dict["screen"]=null
@@ -45,6 +49,41 @@ if (nav_dict==null || nav_dict==undefined) var nav_dict={}
 var cur_address=window.location.pathname //"/dev/alif-verbs/"
 
 
+// function seconds2str(seconds){
+//     n_seconds=seconds%60
+//     n_minutes=(seconds-n_seconds)/60
+//     n_minutes_str=""+n_minutes
+//     n_seconds_str=""+n_seconds
+//     if (n_seconds_str.length==1) n_seconds_str="0"+n_seconds_str
+//     timer_str=n_minutes_str+":"+n_seconds_str	
+// 	return timer_str
+// }
+
+// function start_timer(timer_id,callback_fn,interval=1000){ //
+// 	timer_str=seconds2str(timer.remianing_time)
+// 	$$(timer_id).innerHTML=timer_str
+// 	timer.starter = setInterval(function(){
+// 		console.log(timer.remianing_time)
+// 		timer.remianing_time-=interval/1000
+// 		console.log(timer.remianing_time)
+// 		timer_str=seconds2str(timer.remianing_time)
+// 		$$(timer_id).innerHTML=timer_str
+// 		if (timer.remianing_time<=0) {
+// 			callback_fn()
+// 			clearInterval(timer.starter)
+// 		} 
+// 	}, interval);
+
+// 	//console.log(timer_str)
+// }
+
+// function pause_timer(){
+// 	clearInterval(timer.starter)
+// }
+
+function game_ended(){
+	show_screen("after_game_div")
+}
 // function parse_qs(){
 // 	qs_dict={}
 // 	qs=window.location.search.slice(1)
@@ -65,8 +104,202 @@ var cur_address=window.location.pathname //"/dev/alif-verbs/"
 // 	}
 // 	return items.join("&")
 // }
+
+function prepare_questions(){
+	tmp_question_list=[]
+	q_list=[]
+	verb_conjugations_obj={} //combining all conjugation questions with the same verb ID
+	tense_pronoun_obj={} //object to combine questions with the same tense and pronouns from different verbs
+	//data_obj=shuffle(game_data)
+	//console.log(game_data)
+	for (const v_obj of game_data){
+		conj_list=[]
+		console.log(v_obj)
+		en_forms=v_obj["english"]
+		ar_forms=v_obj["forms"]
+		num0=v_obj["number"]
+		id0=v_obj["id"]
+		console.log(en_forms)
+		for (ar_tense of Object.keys(ar_forms)){
+			cur_form_obj=ar_forms[ar_tense]
+			//console.log(ar_tense,cur_form_obj)
+			for (pronoun0 of Object.keys(cur_form_obj)){
+				//corr_en=en_forms[ar_tense]
+				en_vp=en_forms["base"] //should be base
+				if (ar_tense=="past") en_vp=en_forms[ar_tense]
+				if (ar_tense=="imperative") en_vp=en_forms["base"]	
+				if (ar_tense=="base") en_vp=en_forms["base"]		
+				if (ar_tense=="future") en_vp= "will "+ en_forms["base"]
+				if (ar_tense=="present" && (pronoun0=="he" || pronoun0=="she")) en_vp=en_forms["-s"]
+				if (ar_tense=="active"){
+					if (pronoun0[0]=="I") en_vp="am "+ en_forms["-ing"]
+					else if (pronoun0=="he" || pronoun0=="she") en_vp="is "+ en_forms["-ing"]
+					else en_vp="are "+ en_forms["-ing"]
+				} //en_vp=en_forms[ar_tense]
+				en_full=pronoun0+" "+en_vp
+				ar_form0=cur_form_obj[pronoun0]
+				tmp_obj={}
+				tmp_obj["number"]=num0
+				tmp_obj["id"]=id0
+				tmp_obj["tense"]=ar_tense
+				tmp_obj["pronoun"]=pronoun0
+				tmp_obj["en_base"]=en_forms["base"]
+				tmp_obj["en_vp"]=en_full
+				tmp_obj["ar_form"]=ar_form0
+
+
+				//console.log(ar_tense,pronoun0,en_full,cur_form_obj[pronoun0])
+				q_list.push(tmp_obj)
+				conj_list.push(tmp_obj)
+				tense_pronoun_key=[ar_tense,pronoun0]
+				found_items_with_same_tense_pronoun=tense_pronoun_obj[tense_pronoun_key]
+				if (found_items_with_same_tense_pronoun==null) found_items_with_same_tense_pronoun=[]
+				found_items_with_same_tense_pronoun.push(tmp_obj)
+				tense_pronoun_obj[tense_pronoun_key]=found_items_with_same_tense_pronoun
+
+				//console.log(tmp_obj)
+			}
+		}
+		verb_conjugations_obj[id0]=conj_list
+		// console.log(en_forms)
+		// console.log(ar_forms)
+
+	}
+	// console.log(verb_conjugations_obj)
+	// console.log(tense_pronoun_obj)
+	console.log(q_list.length)
+	shuffle(q_list) //instead of random shuffling, we can assign weights to verbs based on 1- their importance (lower number) 2- the frequency of mistakes with them
+	for (tmp_item0 of q_list){
+		//get different verbs
+		cur_q_obj={}
+		cur_q_obj.verb_id=tmp_item0.id
+		cur_q_obj.tense=tmp_item0.tense
+		cur_q_obj.pronoun=tmp_item0.pronoun
+		cur_q_obj.english=tmp_item0.en_base
+		cur_q_obj.number=tmp_item0.number
+
+
+		// cur_q_obj.prompt=""
+		// cur_q_obj.correct=""
+		// cur_q_obj.item=""
+		cur_q_obj.options=[]
+		//cur_q_obj.options.push(tmp_item0)
+		q_types=["recognition","use","conjugation_recognition","conjugation_use","mix_recognition","mix_use"] //recognition: translate Arabic V to english / Use - opposite / conjugation_r: recognize the cojugation / conjugation_u: use the conjugation / mix is when there are different verbs with different conjugations
+		cur_q_obj.type=shuffle(q_types)[0]
+		// if (cur_q_obj.type=="conjugation_use" || cur_q_obj.type=="conjugation_recognition"){
+		// 	other_conjugations=
+
+		// continue
+
+		if (cur_q_obj.type=="recognition" || cur_q_obj.type=="conjugation_recognition" || cur_q_obj.type=="mix_recognition"){
+			cur_q_obj.prompt="Which verb is this?"
+			item_label=tmp_item0.ar_form[0]+" "+tmp_item0.ar_form[1]
+			cur_q_obj.item=item_label
+			cur_q_obj.correct=tmp_item0.en_vp
+			cur_option={}
+			cur_option.label=tmp_item0.en_vp
+			cur_option.name=tmp_item0.en_vp
+			cur_q_obj.options.push(cur_option)
+		}
+		if (cur_q_obj.type=="use" || cur_q_obj.type=="conjugation_use" || cur_q_obj.type=="mix_use"){
+			cur_q_obj.prompt="How do you say this?"
+			cur_q_obj.item=tmp_item0.en_vp
+			cur_q_obj.correct=tmp_item0.ar_form[0]
+			cur_option={}
+			op_label=tmp_item0.ar_form[0]+" "+tmp_item0.ar_form[1]
+			cur_option.label=op_label
+			cur_option.name=tmp_item0.ar_form[0]
+			cur_q_obj.options.push(cur_option)	 		
+		}
+
+		if (cur_q_obj.type=="conjugation_use" || cur_q_obj.type=="conjugation_recognition"){
+			corr_conjugation_list=verb_conjugations_obj[tmp_item0.id]
+			corr_conjugation_list=shuffle(corr_conjugation_list)
+			for (tmp_item1 of corr_conjugation_list){
+				if (tmp_item0==tmp_item1) continue
+				cur_option={}
+				if (cur_q_obj.type=="conjugation_recognition") {
+					cur_option.label=tmp_item1.en_vp
+					cur_option.name=tmp_item1.en_vp					
+				}
+				if (cur_q_obj.type=="conjugation_use") {
+					cur_option.label=tmp_item1.ar_form[0]+" "+tmp_item1.ar_form[1]
+					cur_option.name=tmp_item1.ar_form[0]			
+				}
+
+				if (cur_option.name==cur_q_obj.correct) continue
+				cur_q_obj.options.push(cur_option)
+				if 	(cur_q_obj.options.length==4) break	
+			}
+			//console.log(corr_conjugation_list)
+		}
+		//now for creating questions with the same tense/pronoun
+		if (cur_q_obj.type=="recognition" || cur_q_obj.type=="use"){
+			cur_key=[tmp_item0.tense,tmp_item0.pronoun]
+			corr_verb_list=tense_pronoun_obj[cur_key]
+			corr_verb_list=shuffle(corr_verb_list)
+			for (tmp_item1 of corr_verb_list){
+				if (tmp_item0==tmp_item1) continue
+				cur_option={}
+				if (cur_q_obj.type=="recognition") {
+					cur_option.label=tmp_item1.en_vp
+					cur_option.name=tmp_item1.en_vp					
+				}
+				if (cur_q_obj.type=="use") {
+					cur_option.label=tmp_item1.ar_form[0]+" "+tmp_item1.ar_form[1]
+					cur_option.name=tmp_item1.ar_form[0]			
+				}
+
+				if (cur_option.name==cur_q_obj.correct) continue
+				cur_q_obj.options.push(cur_option)
+				if 	(cur_q_obj.options.length==4) break	
+			}
+			//console.log(corr_conjugation_list)
+		}
+
+		//now for creating questions with mixed clues -options have different verbs with different conjugations and tenses/pronouns
+		if (cur_q_obj.type=="mix_recognition" || cur_q_obj.type=="mix_use"){
+			cur_i=getRandomInt(len(q_list)-4)-len(q_list) //negative number, showing the slice from a random index to the end 
+			//cur_key=[tmp_item0.tense,tmp_item0.pronoun]
+			corr_verb_slice=q_list.slice(cur_i) //tense_pronoun_obj[cur_key]
+			//corr_verb_list=shuffle(corr_verb_list)
+			for (tmp_item1 of corr_verb_slice){
+				if (tmp_item0==tmp_item1) continue
+				cur_option={}
+				if (cur_q_obj.type=="mix_recognition") {
+					cur_option.label=tmp_item1.en_vp
+					cur_option.name=tmp_item1.en_vp					
+				}
+				if (cur_q_obj.type=="mix_use") {
+					cur_option.label=tmp_item1.ar_form[0]+" "+tmp_item1.ar_form[1]
+					cur_option.name=tmp_item1.ar_form[0]			
+				}
+
+				if (cur_option.name==cur_q_obj.correct) continue
+				cur_q_obj.options.push(cur_option)
+				if 	(cur_q_obj.options.length==4) break	
+			}
+			//console.log(corr_conjugation_list)
+		}
+
+
+		cur_q_obj.options=shuffle(cur_q_obj.options)
+		//console.log(cur_q_obj)
+		tmp_question_list.push(cur_q_obj)
+
+	} //end of the iteration over the question objects
+	return tmp_question_list
+}
 function init(){
 	console.log("Hello")
+	fname="txt/verbs-eg-data.json"
+	read_file(fname,function(obj1){
+		//console.log(obj1)
+		game_data=obj1
+		//prepare_questions()
+		go2menu()
+	})
+
 	// cur_qs_dict=parse_qs()
 	// arabic_var=cur_qs_dict.arabic_var
 	// cur_screen=cur_qs_dict.screen
@@ -112,7 +345,7 @@ function go2menu(){
 function check_answer(evt){
 	trg=evt.currentTarget
 	console.log(trg)
-	if (trg.id==answer.correct) is_correct(trg)
+	if (trg.name==answer.correct) is_correct(trg)
 	else is_wrong(trg)
 	
 	// //cur_selector="#"+obj1.id
@@ -128,11 +361,20 @@ function next_q(){
 
 function is_correct(trg1){
 	trg1.style.backgroundColor="green"
+	trg1.classList.remove("quiz-option")
+	//$(".quiz-option").remove();
+	trg1.classList.add("correct")
+	//gsap.to(trg1, {duration: 2, xPercent:-50, yPercent:-50, left:"50%", top:"50%",onComplete:next_q});
+
+	//{xPercent:-50, yPercent:-50, left:"50%", top:"50%"}
+	// tl = new TimelineMax({delay:1});
+	// tl.to(trg1, {duration: 0.5, x: 0,onComplete:next_q});
 	//var tl = new TimelineMax();
 	// tl = new TimelineMax({delay:0});
 	// tl.to(trg1, {duration: 1, x: 100});
 	// tl = new TimelineMax({delay:1});
-	gsap.to(trg1, {duration: 1, y: -50,onComplete:next_q});
+	gsap.to(".quiz-option", {duration: 1, opacity: 0.05});
+	gsap.to(trg1, {duration: 2, y: 0,onComplete:next_q});
 }
 
 function is_wrong(trg1){
@@ -163,23 +405,35 @@ function go2tutorial(){
 function start_quiz(){
 	show_screen("quiz_div")
 	gen_quiz()
+	timer.remianing_time=60 //to be set by the settings
+	start_timer("timer_div",game_ended)
 	deploy_question()
 }
 
 function gen_quiz(){
-	question={}
-	question.prompt="What verb is this?"
-	question.item="yal3ab"
-	question.image=""
-	question.audio=""
-	question.correct="play"
-	question.options=[{id:"play",label:"play"},
-	{id:"eat",label:"eat"},
-	{id:"drink",label:"drink"},
-	{id:"walk",label:"walk"},
-	]
-	quiz.question_list=[question]
+	// question={}
+	// question.prompt="What verb is this?"
+	// question.item="yal3ab"
+	// question.image=""
+	// question.audio=""
+	// question.correct="play"
+	// question.options=[{id:"play",label:"play"},
+	// {id:"eat",label:"eat"},
+	// {id:"drink",label:"drink"},
+	// {id:"walk",label:"walk"},
+	// ]
+
+	//quiz.question_list=[question] - for testing
+	quiz.question_list=prepare_questions()
 	quiz.i=0	
+}
+
+function repl_with_emoji(text0){
+	text0=text0.replace("(>)","➡")
+	text0=text0.replace("(f)","👩")
+	text0=text0.replace("(m)","👨")
+	text0=text0.replace("(pl)","👩👨")	
+	return text0
 }
 
 function deploy_question(){
@@ -187,15 +441,23 @@ function deploy_question(){
 	answer.correct=cur_question.correct
 	//quiz_prompt-quiz_item - quiz_options
 	$$("quiz_prompt").innerHTML=cur_question.prompt
-	$$("quiz_item").innerHTML=cur_question.item
+	cur_item=cur_question.item
+	cur_item=repl_with_emoji(cur_item)
+
+
+	
+	
+	$$("quiz_item").innerHTML=cur_item
 	options_div=$$("quiz_options")
 	options_div.innerHTML=""
 	for (const op of cur_question.options){
 		console.log(op)
 		var op_btn=create_el_basic("button",options_div)
-		op_btn.className="btn btn-block btn-primary"
-		op_btn.innerHTML=op.label
-		op_btn.id=op.id
+		op_btn.className="btn btn-block btn-primary quiz-option"
+		cur_label=repl_with_emoji(op.label)
+		op_btn.innerHTML=cur_label
+		op_btn.id=op.name
+		op_btn.name=op.name
 		op_btn.onclick=check_answer
 	}
 }
@@ -255,15 +517,15 @@ function deploy_question(){
     	</div>
    		<div id="quiz_div" class="screen">
    			<div class="row">
-   				<div class="col">Menu</div>
-   				<div class="col">Timer</div>
-   				<div class="col">Score</div>
-   				<div class="col">Accuracy</div>
-   			</div>
+   				<div class="col">Menu <i class="fa fa-bars" aria-hidden="true"></i></div>
+   				<div class="col"><span id="timer_div">05:12</span> <i class="fa fa-clock-o" aria-hidden="true"></i></div>
+   				<div class="col"><span id="score_div">Score</span> <img src="img/trophy.png" height="20px" /></div>
+   				<div class="col"><span id="accuracy_div">100%</span> <img src="img/target.png" height="20px" /></div>
+   			</div> 
 
 
 	      <p id="quiz_prompt">Prompt: What does this verb mean?</p> 
-	      <p id="quiz_item">yel3ab</p>
+	      <h2 id="quiz_item">yel3ab</h2>
 	      <p id="quiz_answer"></p>
 	      <div id="quiz_options">
 			<button class="btn btn-primary btn-block" id="quiz_option0" onclick="check_answer(this)">Walk</button>
@@ -271,11 +533,11 @@ function deploy_question(){
 			<button class="btn btn-primary btn-block" id="quiz_option2" onclick="check_answer(this)">Eat</button>
 			<button class="btn btn-primary btn-block" id="quiz_option3" onclick="check_answer(this)">Sleep</button>
 	      </div>
-   			<div class="row">
-   				<div class="col"></div>
-   				<div class="col">Footer</div>
-   				<div class="col">Hints</div>
-   			</div>
+   			<div class="row m-1">
+   				<div class="col"><span id="coin_count">312</span>&nbsp;<img src="img/coin.png" height="20px" /></div>
+   				<div class="col"><img id="mood_img" src="img/smiling-face_263a-fe0f.png" height="20px" /></div>
+   				<div class="col"><span id="hint_count">4</span>&nbsp;<img src="img/light-bulb.png" height="20px" /></div>
+   			</div> 
 
     	</div>
    		<div id="after_game_div" class="screen">
@@ -337,6 +599,7 @@ function deploy_question(){
     </div>
   </div>
 </div>
+
 
 </body>
 </html>
