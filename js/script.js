@@ -149,6 +149,17 @@ function create_table(parent_el,array1){
     return table_el
 }
 
+function fill_table(table_id,array1){
+    table_el=$$(table_id)
+    for (const item0 of array1){
+        var row = table_el.insertRow(-1);
+        for (const sub_item of item0){
+            var cell0 = row.insertCell(-1);
+            cell0.innerHTML=sub_item
+        }
+    }
+    return table_el    
+}
 function post_data(link,obj2upload,callback_fn){
     //we expect both uploaded data and received data to be of json format
     fetch(link,

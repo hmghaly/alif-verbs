@@ -27,6 +27,8 @@ var answer={}
 var session={}
 var timer={}
 var game_data={}
+var results={}
+
 
 var app_name="alif-verbs"
 // nav_dict["arabic_var"]=null
@@ -36,6 +38,19 @@ time_now=Date.now()
 //set_local_strorage(app_name,"nav_dict",nav_dict)
 var nav_dict=get_local_strorage(app_name,"nav_dict")
 if (nav_dict==null || nav_dict==undefined) var nav_dict={}
+
+var score=get_local_strorage(app_name,"score")
+if (score==null || score==undefined) var score={}	
+if (score.coins==null || score.coins==undefined) score.coins=0
+
+var accuracy=get_local_strorage(app_name,"accuracy")
+if (accuracy==null || accuracy==undefined) accuracy={}
+if (accuracy.overall==null) accuracy.overall={}
+if (accuracy.current==null) accuracy.current={}
+	
+// if (accuracy.overall==null || accuracy.overall==undefined) var accuracy.overall={}
+// if (accuracy.current==null || accuracy.current==undefined) var accuracy.current={} //accuracy.current accuracy.overall
+
 
 // if (nav_dict.last_active==null) nav_dict.last_active=time_now;
 // time_diff_from_last_active=time_now-nav_dict.last_active
@@ -83,6 +98,29 @@ var cur_address=window.location.pathname //"/dev/alif-verbs/"
 
 function game_ended(){
 	show_screen("after_game_div")
+	//after_game_score after_game_accuracy after_game_correct_total analysis_table
+	$$("after_game_score").innerHTML=""+results.score
+	$$("after_game_accuracy").innerHTML=""+Math.round(results.accuracy*100)+"%"
+	correct_total_str=""+results.n_answered+ " / "+results.n_attempted
+	$$("after_game_correct_total").innerHTML=correct_total_str
+	keys=["correct","incorrect","total"]
+	headers=["Verb",'correct <img src="img/check.png" height="20px" />','incorrect <img src="img/wrong.png" height="20px" />',"total"]
+
+	table_array=[]
+	table_array.push(headers)
+	for (verb_item of Object.keys(accuracy.current.verb)){
+		cur_row_items=[verb_item]
+		for (k0 of keys){
+			cur_val=accuracy.current.verb[verb_item][k0]
+			if (cur_val==null) cur_val=0
+			cur_row_items.push(""+cur_val)
+		}
+		table_array.push(cur_row_items)
+
+	}
+	fill_table("analysis_table",table_array)
+	accuracy.current.verb
+
 }
 // function parse_qs(){
 // 	qs_dict={}
@@ -341,12 +379,58 @@ function go2menu(){
 	set_local_strorage(app_name,"nav_dict",nav_dict)
 	show_screen(nav_dict.screen)
 }
+function increment(obj1){
+	if (obj1==null || obj1==undefined) obj1=0
+	return obj1+1	
+}
+function get_subobj(obj1,key1){
+	if (obj1[key1] ==null || obj1[key1]==undefined) obj1[key1]={}
+	return obj1[key1]	
+}
+
+// function recursive_obj(initial_obj,subkeys,level=0){
+// 	if (level>=len(subkeys)) return initial_obj
+// 	cur_subkey=subkeys[level]
+// 	if (initial_obj[cur_subkey]==null || initial_obj[cur_subkey]==undefined) initial_obj[cur_subkey]={}
+// 	initial_obj[cur_subkey]=recursive_obj(initial_obj,subkeys,level+1)
+// 	return initial_obj
+// }
 
 function check_answer(evt){
+	cur_question=quiz.question_list[quiz.i]
 	trg=evt.currentTarget
 	console.log(trg)
+	accuracy.current.all=get_subobj(accuracy.current,"all")
+	accuracy.current.verb=get_subobj(accuracy.current,"verb")
+	accuracy.current.tense=get_subobj(accuracy.current,"tense")
+	accuracy.current.pronoun=get_subobj(accuracy.current,"pronoun")
+	accuracy.current.verb[cur_question.verb_id]=get_subobj(accuracy.current.verb,cur_question.verb_id)
+	accuracy.current.tense[cur_question.tense]=get_subobj(accuracy.current.tense,cur_question.tense)
+	accuracy.current.pronoun[cur_question.pronoun]=get_subobj(accuracy.current.pronoun,cur_question.pronoun)
+	//console.log("check1", accuracy.current.all.total)
+	accuracy.current.all.total=increment(accuracy.current.all.total)
+	//console.log("check2", accuracy.current.all.total)
+	accuracy.current.verb[cur_question.verb_id].total=increment(accuracy.current.verb[cur_question.verb_id].total)
+	accuracy.current.tense[cur_question.tense].total=increment(accuracy.current.tense[cur_question.tense].total)
+	accuracy.current.pronoun[cur_question.pronoun].total=increment(accuracy.current.pronoun[cur_question.pronoun].total)
+
+	results.n_attempted=increment(results.n_attempted)
+	// accuracy.current.tense.total=increment(accuracy.current.tense.total)
+	// accuracy.current.pronoun.total=increment(accuracy.current.pronoun.total)
+
+	// for (key0 of ["all","verb","tense","pronoun"]){
+	// 	if (accuracy.current[key0]==null || accuracy.current[key0]==undefined) accuracy.current[key0]={}
+	// 	if (accuracy.current[key0][cur_question.pronoun]==null || accuracy.current[key0][cur_question.pronoun]==undefined) accuracy.current[key0][cur_question.pronoun]={}
+	// 	if (accuracy.current[key0][cur_question.verb_id]==null || accuracy.current[key0][cur_question.pronoun]==undefined) accuracy.current[key0][cur_question.pronoun]={}	
+	// 	accuracy.current[key0][cur_question.pronoun].total=increment(accuracy.current[key0][cur_question.pronoun].total)
+
+	// }
+	// if (accuracy.current.total==null || accuracy.current.total==undefined) accuracy.current.total=0
+	// accuracy.current.total+=1
+
 	if (trg.name==answer.correct) is_correct(trg)
 	else is_wrong(trg)
+
 	
 	// //cur_selector="#"+obj1.id
 	// //gsap.to(cur_selector, {duration: 1, x: 100});
@@ -354,30 +438,84 @@ function check_answer(evt){
 	//gsap.to(cur_selector, {duration: 0.5, x: 0});
 }
 
+function show_accuracy(){ //calculate and display updated accuracy with each answer given
+	if (accuracy.current.all.correct==null) accuracy.current.all.correct=0
+	accuracy_percent=100*(accuracy.current.all.correct/accuracy.current.all.total)
+	accuracy_percent_str=""+Math.round(accuracy_percent)+"%"
+	$$("accuracy_div").innerHTML=accuracy_percent_str	
+}
+
+function show_score(){
+	if (accuracy.current.all.correct==null) accuracy.current.all.correct=0
+	results.accuracy=accuracy.current.all.correct/accuracy.current.all.total
+	results.score=Math.round(10*results.n_answered*results.accuracy) 
+	score_str=""+results.score
+	$$("score_div").innerHTML=score_str
+}
+
+function show_coin(){
+	$$("coin_count").innerHTML=score.coins
+}
+
 function next_q(){
 	quiz.i+=1
 	deploy_question()
 }
 
+
 function is_correct(trg1){
+	cur_question=quiz.question_list[quiz.i]
+	accuracy.current.all.correct=increment(accuracy.current.all.correct)
+	console.log("accuracy.current.all.correct",accuracy.current.all.correct)
+	accuracy.current.verb[cur_question.verb_id].correct=increment(accuracy.current.verb[cur_question.verb_id].correct)
+	accuracy.current.tense[cur_question.tense].correct=increment(accuracy.current.tense[cur_question.tense].correct)
+	accuracy.current.pronoun[cur_question.pronoun].correct=increment(accuracy.current.pronoun[cur_question.pronoun].correct)
+	results.n_answered=increment(results.n_answered)
+	show_accuracy()
+	show_score()
+	// rect=trg1.getBoundingClientRect()
+	// console.log(rect)
+	score.coins=increment(score.coins)
+	cur_coin=img("img/coin.png",onload=null,id="")
+	cur_coin.height=20
+	cur_coin.width=20
+	trg1.appendChild(cur_coin)
+	dist_obj0=get_dist(cur_coin,$$("coin_img"))
+	//img_str='<img src="img/coin.png" id="cur_coin" width="25px" />'
+	// img_str='<img id="cur_coin" src="img/coin.png" height="20px" />'
+	// trg1.innerHTML+=" "+img_str
+	// cur_coin=$$("cur_coin")
+
+	gsap.to(cur_coin, {duration: 1, x:dist_obj0.delta_x,y: dist_obj0.delta_y,onComplete:show_coin});
+	
+	
+	// accuracy_percent=100*(accuracy.current.all.correct/accuracy.current.all.total)
+	// accuracy_percent_str=""+Math.round(accuracy_percent)+"%"
+	// console.log(accuracy_percent_str)
+	// $$("accuracy_div").innerHTML=accuracy_percent_str
+
+
 	trg1.style.backgroundColor="green"
 	trg1.classList.remove("quiz-option")
-	//$(".quiz-option").remove();
 	trg1.classList.add("correct")
-	//gsap.to(trg1, {duration: 2, xPercent:-50, yPercent:-50, left:"50%", top:"50%",onComplete:next_q});
+	$(".quiz-option").on('click', function(event){ //remove event listener onclick from the incorrect options
+	    event.stopPropagation();
+	    event.stopImmediatePropagation();
+	});
 
-	//{xPercent:-50, yPercent:-50, left:"50%", top:"50%"}
-	// tl = new TimelineMax({delay:1});
-	// tl.to(trg1, {duration: 0.5, x: 0,onComplete:next_q});
-	//var tl = new TimelineMax();
-	// tl = new TimelineMax({delay:0});
-	// tl.to(trg1, {duration: 1, x: 100});
-	// tl = new TimelineMax({delay:1});
 	gsap.to(".quiz-option", {duration: 1, opacity: 0.05});
 	gsap.to(trg1, {duration: 2, y: 0,onComplete:next_q});
 }
 
 function is_wrong(trg1){
+	cur_question=quiz.question_list[quiz.i]
+	accuracy.current.all.incorrect=increment(accuracy.current.all.incorrect)
+	accuracy.current.verb[cur_question.verb_id].incorrect=increment(accuracy.current.verb[cur_question.verb_id].incorrect)
+	accuracy.current.tense[cur_question.tense].incorrect=increment(accuracy.current.tense[cur_question.tense].incorrect)
+	accuracy.current.pronoun[cur_question.pronoun].incorrect=increment(accuracy.current.pronoun[cur_question.pronoun].incorrect)
+	show_accuracy()
+	show_score()
+
 	trg1.style.backgroundColor="red"
 	TweenMax.to(trg1, 0.1, {x:"+=20", yoyo:true, repeat:3});
 
@@ -386,6 +524,19 @@ function is_wrong(trg1){
 	// tl = new TimelineMax({delay:0.5});
 	// tl.to(trg1, {duration: 0.5, x: 0});
 
+}
+
+function get_dist(obj1,obj2){
+	rect1=obj1.getBoundingClientRect()
+	rect2=obj2.getBoundingClientRect()
+	pt1_x=rect1.x+rect1.width*0.5
+	pt1_y=rect1.y+rect1.height*0.5
+	pt2_x=rect2.x+rect2.width*0.5
+	pt2_y=rect2.y+rect2.height*0.5
+	dist_obj={}
+	dist_obj.delta_x=pt2_x-pt1_x
+	dist_obj.delta_y=pt2_y-pt1_y
+	return dist_obj
 }
 // function move_item(){
 // 	gsap.to("#main_menu", {duration: 1, x: 100});
@@ -405,6 +556,11 @@ function go2tutorial(){
 function start_quiz(){
 	show_screen("quiz_div")
 	gen_quiz()
+	//accuracy.current accuracy.overall
+	results={}
+	results.n_answered=0
+	results.n_attempted=0
+	accuracy.current={}
 	timer.remianing_time=60 //to be set by the settings
 	start_timer("timer_div",game_ended)
 	deploy_question()
@@ -443,17 +599,21 @@ function deploy_question(){
 	$$("quiz_prompt").innerHTML=cur_question.prompt
 	cur_item=cur_question.item
 	cur_item=repl_with_emoji(cur_item)
-
-
-	
-	
 	$$("quiz_item").innerHTML=cur_item
+	tags_div=$$("quiz_tags")
+	tags_div.innerHTML=""
+	cur_tag_el=create_el_basic("span",tags_div)
+	cur_tag_el.className="badge badge-info"
+	cur_tag_el.innerHTML=cur_question.tense
+	// '<span class="badge badge-info">Info</span>'
 	options_div=$$("quiz_options")
 	options_div.innerHTML=""
 	for (const op of cur_question.options){
 		console.log(op)
 		var op_btn=create_el_basic("button",options_div)
-		op_btn.className="btn btn-block btn-primary quiz-option"
+		//op_btn.className="btn btn-block btn-primary quiz-option"
+		op_btn.className="btn btn-block btn-outline-dark quiz-option"
+		
 		cur_label=repl_with_emoji(op.label)
 		op_btn.innerHTML=cur_label
 		op_btn.id=op.name
@@ -483,19 +643,19 @@ function deploy_question(){
 	      <p>Learn Verbs in Arabic and in Dialects!</p>
 	      <p><button class="btn btn-primary btn-block" onclick="go2menu()">Continue</button></p>
 
-	      <p>By Champolu</p>
+	      <p><img id="champolu_logo" src="img/champolu_logo.png" height="100px" /></p>
 
     	</div>
     	<div id="arabic_selection_menu" class="screen">
 	      <h5>Which Arabic to learn?</h5>
-	      <p><button class="btn btn-primary btn-block" name="msa" onclick="select_arabic(this)">Modern Standard Arabic</button></p>
+	      <p><button class="btn btn-primary btn-block" name="msa" onclick="select_arabic(this)" hidden>Modern Standard Arabic</button></p>
 	      <p><button class="btn btn-primary btn-block" name="ega" onclick="select_arabic(this)">Egyptian Arabic</button></p>
     	</div>
 
     	<div id="main_menu" class="screen">
 	      <h5>Get Started!</h5>
 	      <p>Streak - Minutes to Streak</p>
-	      <p><button class="btn btn-primary btn-block" onclick="go2tutorial()">Tutorial</button></p>
+	      <p><button class="btn btn-primary btn-block" onclick="go2tutorial()" hidden>Tutorial</button></p>
 	      <p><button class="btn btn-primary btn-block" onclick="start_quiz()">Start Quiz!</button></p>
 	      <p>Help Button - Feedback Button</p>
     	</div>
@@ -517,7 +677,7 @@ function deploy_question(){
     	</div>
    		<div id="quiz_div" class="screen">
    			<div class="row">
-   				<div class="col">Menu <i class="fa fa-bars" aria-hidden="true"></i></div>
+   				<div class="col" onclick="go2menu()">Menu <i class="fa fa-bars" aria-hidden="true"></i></div>
    				<div class="col"><span id="timer_div">05:12</span> <i class="fa fa-clock-o" aria-hidden="true"></i></div>
    				<div class="col"><span id="score_div">Score</span> <img src="img/trophy.png" height="20px" /></div>
    				<div class="col"><span id="accuracy_div">100%</span> <img src="img/target.png" height="20px" /></div>
@@ -526,6 +686,7 @@ function deploy_question(){
 
 	      <p id="quiz_prompt">Prompt: What does this verb mean?</p> 
 	      <h2 id="quiz_item">yel3ab</h2>
+	      <div id="quiz_tags"></div>
 	      <p id="quiz_answer"></p>
 	      <div id="quiz_options">
 			<button class="btn btn-primary btn-block" id="quiz_option0" onclick="check_answer(this)">Walk</button>
@@ -534,18 +695,22 @@ function deploy_question(){
 			<button class="btn btn-primary btn-block" id="quiz_option3" onclick="check_answer(this)">Sleep</button>
 	      </div>
    			<div class="row m-1">
-   				<div class="col"><span id="coin_count">312</span>&nbsp;<img src="img/coin.png" height="20px" /></div>
-   				<div class="col"><img id="mood_img" src="img/smiling-face_263a-fe0f.png" height="20px" /></div>
-   				<div class="col"><span id="hint_count">4</span>&nbsp;<img src="img/light-bulb.png" height="20px" /></div>
+   				<div class="col"><span id="coin_count">0</span>&nbsp;<img id="coin_img" src="img/coin.png" height="20px" /></div>
+   				<div class="col"><img id="mood_img" src="img/slightly-smiling-face_1f642.png" height="20px" /></div>
+   				<div class="col"><span id="hint_count">0</span>&nbsp;<img src="img/light-bulb.png" height="20px" /></div>
    			</div> 
 
     	</div>
    		<div id="after_game_div" class="screen">
 	      <h5>Game Over</h5>
-	      <p>Your Score</p>
-	      <p>Your mistakes</p>
-	      <p>High Score?</p>
-	      <p>Back to Menu</p>
+	      <p><img src="img/trophy.png" height="20px" /> Your Score: <span id="after_game_score"></span>
+	      	<span id="highscore_div" hidden><img src="img/military-medal_1f396-fe0f.png" height="20px" /> <b>High Score!</b></span>
+	      </p> 
+	      <p><img src="img/target.png" height="20px" /> Accuracy: <span id="after_game_accuracy"></span></p>
+	      <p><img src="img/check.png" height="20px" /> Correct: <span id="after_game_correct_total"></span></p> 
+	      <h3 id="accuracy_analysis">Accuracy Analysis</h3>
+	      <table id="analysis_table" class="table table-striped"></table>
+	      <p><button class="btn btn-primary btn-block" onclick="go2menu()">Main Menu</button></p>
     	</div>
    		<div id="profile_div" class="screen">
 	      <h5>Profile</h5>
