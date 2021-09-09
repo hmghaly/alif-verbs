@@ -119,7 +119,7 @@ function game_ended(){
 
 	}
 	fill_table("analysis_table",table_array)
-	accuracy.current.verb
+	//accuracy.current.verb
 
 }
 // function parse_qs(){
@@ -368,7 +368,7 @@ function show_screen(screen_id){
 	screen_selector="#"+screen_id
 	$(".screen").hide()
 	$(screen_selector).show()	
-	gsap.from(screen_selector, {duration: 1, x: -1000});  //or any other animation	
+	//gsap.from(screen_selector, {duration: 1, x: -1000});  //or any other animation	
 }
 
 function go2menu(){
@@ -652,7 +652,7 @@ function deploy_question(){
 	      <p><button class="btn btn-primary btn-block" name="ega" onclick="select_arabic(this)">Egyptian Arabic</button></p>
     	</div>
 
-    	<div id="main_menu" class="screen">
+    	<div id="main_menu" class="screen"> 
 	      <h5>Get Started!</h5>
 	      <p>Streak - Minutes to Streak</p>
 	      <p><button class="btn btn-primary btn-block" onclick="go2tutorial()" hidden>Tutorial</button></p>

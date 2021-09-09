@@ -151,6 +151,7 @@ function create_table(parent_el,array1){
 
 function fill_table(table_id,array1){
     table_el=$$(table_id)
+    table_el.innerHTML=""
     for (const item0 of array1){
         var row = table_el.insertRow(-1);
         for (const sub_item of item0){
