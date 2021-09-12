@@ -29,6 +29,7 @@ var timer={}
 var game_data={}
 var results={}
 
+var audio_prefix="../../audio/eg-verbs-mini/"
 
 var app_name="alif-verbs"
 // nav_dict["arabic_var"]=null
@@ -122,26 +123,95 @@ function game_ended(){
 	//accuracy.current.verb
 
 }
-// function parse_qs(){
-// 	qs_dict={}
-// 	qs=window.location.search.slice(1)
-// 	amp_split=qs.split("&")
-// 	for (const am of amp_split){
-// 		eq_split=am.split("=")
-// 		if (eq_split.length==2)  qs_dict[eq_split[0]]=eq_split[1] //we should strip/trim spaces if any
-// 	}
-// 	return qs_dict
-// }
 
-// function join_qs(data_dict){
-// 	items=[]
-// 	for (key in data_dict){
-// 		val=data_dict[key]
-// 		cur_item=key+"="+val
-// 		items.push(cur_item)
-// 	}
-// 	return items.join("&")
-// }
+
+function prepare_tutorial(){
+	tutorial_content=$$("tutorial_content")
+	for (const v_obj of game_data.slice(0,10)){
+		conj_list=[]
+		console.log(v_obj)
+		en_forms=v_obj["english"]
+		en_base=en_forms.base
+		cur_verb_div=create_el_basic("div",tutorial_content)
+		cur_verb_div.className="m-1"
+		en_header=create_el_basic("h6",cur_verb_div)
+		en_header.innerHTML=en_base+"<hr>"
+		en_header.style.backgroundColor="lightpink"
+		en_header.className="pt-3"
+		
+		//var forms_table=create_el_basic("table",tutorial_content)
+		table_array=[]
+
+
+		ar_forms=v_obj["forms"]
+		//ar_tenses=Object.keys(ar_forms)
+		//ar_pronouns=Object.keys(ar_forms.present)
+		for (ar_tense of Object.keys(ar_forms)){
+			cur_form_obj=ar_forms[ar_tense]
+			cur_tense_div=create_el_basic("div",cur_verb_div)
+			tense_header=create_el_basic("h7",cur_tense_div)
+			tense_header.innerHTML="Tense: "+ ar_tense
+			tense_header.style.backgroundColor="lightgreen"
+			cur_conj_div=create_el_basic("div",cur_tense_div)
+			cur_conj_div.className="row"
+
+			colors=["Azure","Beige","AliceBlue","HoneyDew","Ivory","LavenderBlush","MistyRose","SeaShell"]
+			colors_i=0
+			for (pronoun0 of Object.keys(cur_form_obj)){
+				//corr_en=en_forms[ar_tense]
+				en_vp=en_forms["base"] //should be base
+				if (ar_tense=="past") en_vp=en_forms[ar_tense]
+				if (ar_tense=="imperative") en_vp=en_forms["base"]	
+				if (ar_tense=="base") en_vp=en_forms["base"]		
+				if (ar_tense=="future") en_vp= "will "+ en_forms["base"]
+				if (ar_tense=="present" && (pronoun0=="he" || pronoun0=="she")) en_vp=en_forms["-s"]
+				if (ar_tense=="active") en_vp= en_forms["-ing"]
+				en_full=pronoun0+" "+en_vp
+				ar_form0=cur_form_obj[pronoun0]
+				console.log(en_full,ar_form0)
+				cur_temp_div=create_el_basic("div",cur_conj_div)
+				cur_temp_div.innerHTML="<b>"+en_full+"</b><br>"+ar_form0[0]+"<br>"+ar_form0[1]+"<br>"
+				cur_temp_div.className="col-sm-4"
+				cur_temp_div.style.backgroundColor=colors[colors_i]
+				colors_i+=1
+				play_img=img("img/play.png")
+				play_img.width=20
+				play_img.name=audio_prefix+ar_form0[0]+".mp3"
+				play_img.onclick=function(evt){
+					//console.log(evt.currentTarget)
+					audioObj = new Audio(evt.currentTarget.name);
+					audioObj.addEventListener("canplaythrough", event => {
+					  /* the audio is now playable; play it if permissions allow */
+					  audioObj.play();
+					})
+
+				}
+
+				cur_temp_div.appendChild(play_img)
+
+			}
+		}
+		// headers=ar_tenses
+		// headers.unshift("");
+		// table_array.push(headers)
+		// for (pronoun0 of ar_pronouns){
+		// 	cur_row_items=[pronoun0]
+		// 	for  (tense0 of ar_tenses){
+		// 		try {cur_val=ar_forms[tense0][pronoun0]}
+		// 		catch {cur_val=null}
+		// 		if (cur_val==null) cell_val=""
+		// 		else cell_val=cur_val[0]+" "+cur_val[1]
+		// 		cur_row_items.push(cell_val)
+		// 	}
+		// 	table_array.push(cur_row_items)
+		// }
+		// //fill_table(forms_table,table_array)
+		// var forms_table=create_table(tutorial_content,table_array)
+		// forms_table.className="table table-bordered"
+
+		//console.log(ar_tenses,ar_pronouns)
+	}
+}
 
 function prepare_questions(){
 	tmp_question_list=[]
@@ -150,7 +220,7 @@ function prepare_questions(){
 	tense_pronoun_obj={} //object to combine questions with the same tense and pronouns from different verbs
 	//data_obj=shuffle(game_data)
 	//console.log(game_data)
-	for (const v_obj of game_data){
+	for (const v_obj of game_data.slice(0,10)){
 		conj_list=[]
 		console.log(v_obj)
 		en_forms=v_obj["english"]
@@ -172,7 +242,7 @@ function prepare_questions(){
 				if (ar_tense=="active"){
 					if (pronoun0[0]=="I") en_vp="am "+ en_forms["-ing"]
 					else if (pronoun0=="he" || pronoun0=="she") en_vp="is "+ en_forms["-ing"]
-					else en_vp="are "+ en_forms["-ing"]
+					else en_vp= en_forms["-ing"]
 				} //en_vp=en_forms[ar_tense]
 				en_full=pronoun0+" "+en_vp
 				ar_form0=cur_form_obj[pronoun0]
@@ -233,7 +303,9 @@ function prepare_questions(){
 			cur_q_obj.prompt="Which verb is this?"
 			item_label=tmp_item0.ar_form[0]+" "+tmp_item0.ar_form[1]
 			cur_q_obj.item=item_label
+			
 			cur_q_obj.correct=tmp_item0.en_vp
+			cur_q_obj.audio=tmp_item0.ar_form[0]
 			cur_option={}
 			cur_option.label=tmp_item0.en_vp
 			cur_option.name=tmp_item0.en_vp
@@ -243,6 +315,7 @@ function prepare_questions(){
 			cur_q_obj.prompt="How do you say this?"
 			cur_q_obj.item=tmp_item0.en_vp
 			cur_q_obj.correct=tmp_item0.ar_form[0]
+			cur_q_obj.audio=tmp_item0.ar_form[0]
 			cur_option={}
 			op_label=tmp_item0.ar_form[0]+" "+tmp_item0.ar_form[1]
 			cur_option.label=op_label
@@ -464,6 +537,8 @@ function next_q(){
 
 
 function is_correct(trg1){
+	$$("quiz_audio").play()
+
 	cur_question=quiz.question_list[quiz.i]
 	accuracy.current.all.correct=increment(accuracy.current.all.correct)
 	console.log("accuracy.current.all.correct",accuracy.current.all.correct)
@@ -550,7 +625,9 @@ function select_arabic(obj1){
 }
 
 function go2tutorial(){
-	show_screen("tutorial_menu")
+	//show_screen("tutorial_menu")
+	prepare_tutorial()
+	$("#myModal").modal();
 }
 
 function start_quiz(){
@@ -600,6 +677,14 @@ function deploy_question(){
 	cur_item=cur_question.item
 	cur_item=repl_with_emoji(cur_item)
 	$$("quiz_item").innerHTML=cur_item
+
+	audio_src="../../audio/eg-verbs-mini/"+cur_question.audio+".mp3"
+	audio_el=$$("quiz_audio")
+	audio_el.src=audio_src
+	if (cur_question.type.includes("recognition")) audio_el.controls=true
+	else audio_el.controls=false
+
+
 	tags_div=$$("quiz_tags")
 	tags_div.innerHTML=""
 	cur_tag_el=create_el_basic("span",tags_div)
@@ -632,12 +717,12 @@ function deploy_question(){
   
 <div class="container">
   <div class="row">
-    <div class="col-sm-4">
+    <div class="col-sm-3">
 <!--       <h3>Column 1</h3>
       <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
       <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p> -->
     </div>
-    <div class="col-sm-4 text-center" id="main_div" style="background-color:lavender;">
+    <div class="col-sm-6 text-center" id="main_div" style="background-color:lavender;">
     	<div id="intro_div" class="screen">
 	      <h5>ALIF Verbs</h5>
 	      <p>Learn Verbs in Arabic and in Dialects!</p>
@@ -654,10 +739,15 @@ function deploy_question(){
 
     	<div id="main_menu" class="screen"> 
 	      <h5>Get Started!</h5>
-	      <p>Streak - Minutes to Streak</p>
+	      <p>Go to tutorial to learn the verbs, then start the quiz</p>
 	      <p><button class="btn btn-primary btn-block" onclick="go2tutorial()" hidden>Tutorial</button></p>
+<!-- 	        <p> <button type="button" class="btn btn-block btn-warning" data-toggle="modal" data-target="#myModal"> -->
+			  <p>  <button type="button" class="btn btn-block btn-warning" onclick="go2tutorial()">
+			    Tutorial
+			  </button></p>
+
 	      <p><button class="btn btn-primary btn-block" onclick="start_quiz()">Start Quiz!</button></p>
-	      <p>Help Button - Feedback Button</p>
+	      <p hidden>Help Button - Feedback Button</p>
     	</div>
 
     	<div id="tutorial_menu" class="screen">
@@ -686,6 +776,7 @@ function deploy_question(){
 
 	      <p id="quiz_prompt">Prompt: What does this verb mean?</p> 
 	      <h2 id="quiz_item">yel3ab</h2>
+	      <audio id="quiz_audio" src="../../audio/eg-verbs-mini/shoof.mp3" controls></audio>
 	      <div id="quiz_tags"></div>
 	      <p id="quiz_answer"></p>
 	      <div id="quiz_options">
@@ -743,8 +834,37 @@ function deploy_question(){
 	      <p>Your feedback</p>
     	</div> 
 
+  <!-- The Modal -->
+  <div class="modal" id="myModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+      
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h4 class="modal-title">Tutorial</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        
+        <!-- Modal body -->
+        <div class="modal-body">
+          <h5>Let's learn about these verbs</h5>
+          <div id="tutorial_content"></div>
+          <audio id="tutorial_audio" src="../../audio/eg-verbs-mini/shoof.mp3"></audio>
+        </div>
+        
+        <!-- Modal footer -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+        </div>
+        
+      </div>
     </div>
-    <div class="col-sm-4" id="ad_space">
+  </div> 
+  <!-- Modal End -->
+
+
+    </div>
+    <div class="col-sm-3" id="ad_space">
       <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1461464026864680"
      crossorigin="anonymous"></script>
       <!-- alif-verbs-vertical -->
