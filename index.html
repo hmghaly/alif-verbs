@@ -18,6 +18,11 @@
 
 </head>
 
+<style type="text/css">
+	
+#main_div { height: 250px; }
+</style>
+
 <script type="text/javascript">
 var arabic_var=null //"msa" //ega lva sya lba maa saa gla iqa kwa lya sda dza tna 
 var cur_screen=null
@@ -28,6 +33,7 @@ var session={}
 var timer={}
 var game_data={}
 var results={}
+var audio_scope;
 
 var audio_prefix="../../audio/eg-verbs-mini/"
 
@@ -178,12 +184,15 @@ function prepare_tutorial(){
 				play_img.width=20
 				play_img.name=audio_prefix+ar_form0[0]+".mp3"
 				play_img.onclick=function(evt){
+
+
 					//console.log(evt.currentTarget)
 					audioObj = new Audio(evt.currentTarget.name);
-					audioObj.addEventListener("canplaythrough", event => {
-					  /* the audio is now playable; play it if permissions allow */
-					  audioObj.play();
-					})
+					audioObj.play();
+					// audioObj.addEventListener("canplaythrough", event => {
+					//    the audio is now playable; play it if permissions allow 
+					//   audioObj.play();
+					// })
 
 				}
 
