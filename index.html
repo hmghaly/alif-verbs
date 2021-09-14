@@ -18,10 +18,24 @@
 
 </head>
 
-<!-- <style type="text/css">
+<style type="text/css">
 	
-#main_div { min-height: 250px; }
-</style> -->
+#intro_div { height: 50%; }
+.buttonload {
+  background-color: #04AA6D; /* Green background */
+  border: none; /* Remove borders */
+  color: white; /* White text */
+  padding: 12px 24px; /* Some padding */
+  font-size: 16px; /* Set a font-size */
+}
+
+/* Add a right margin to each icon */
+.fa {
+  margin-left: -12px;
+  margin-right: 8px;
+}
+
+</style>
 
 <script type="text/javascript">
 var arabic_var=null //"msa" //ega lva sya lba maa saa gla iqa kwa lya sda dza tna 
@@ -31,8 +45,12 @@ var quiz={}
 var answer={}
 var session={}
 var timer={}
-var game_data={}
 var results={}
+// verb_id_list verb_dict
+var loading={} //check if loading is complete, together with animation
+var game_data={} //parsed json file generated externally - a list of verb objects
+var verb_id_list=[] //list of verb ids based on game data
+var verb_dict=[] //a dictionary of game data, where the key is the verb ID
 var audio_scope;
 
 var audio_prefix="../../audio/eg-verbs-mini/"
@@ -131,6 +149,79 @@ function game_ended(){
 }
 
 
+function prepare_conjugation(verb_id){
+	tutorial_content=$$("tutorial_content")
+	tutorial_content.innerHTML=""
+		v_obj=verb_dict[verb_id]
+		conj_list=[]
+		console.log(v_obj)
+		en_forms=v_obj["english"]
+		en_base=en_forms.base
+		cur_verb_div=create_el_basic("div",tutorial_content)
+		cur_verb_div.className="m-1"
+		en_header=create_el_basic("h6",cur_verb_div)
+		en_header.innerHTML=en_base+"<hr>"
+		en_header.style.backgroundColor="lightpink"
+		en_header.className="pt-3"
+		
+		//var forms_table=create_el_basic("table",tutorial_content)
+		table_array=[]
+
+
+		ar_forms=v_obj["forms"]
+		//ar_tenses=Object.keys(ar_forms)
+		//ar_pronouns=Object.keys(ar_forms.present)
+		for (ar_tense of Object.keys(ar_forms)){
+			cur_form_obj=ar_forms[ar_tense]
+			cur_tense_div=create_el_basic("div",cur_verb_div)
+			tense_header=create_el_basic("h7",cur_tense_div)
+			tense_header.innerHTML="Tense: "+ ar_tense
+			tense_header.style.backgroundColor="lightgreen"
+			cur_conj_div=create_el_basic("div",cur_tense_div)
+			cur_conj_div.className="row"
+
+			colors=["Azure","Beige","AliceBlue","HoneyDew","Ivory","LavenderBlush","MistyRose","SeaShell"]
+			colors_i=0
+			for (pronoun0 of Object.keys(cur_form_obj)){
+				//corr_en=en_forms[ar_tense]
+				en_vp=en_forms["base"] //should be base
+				if (ar_tense=="past") en_vp=en_forms[ar_tense]
+				if (ar_tense=="imperative") en_vp=en_forms["base"]	
+				if (ar_tense=="base") en_vp=en_forms["base"]		
+				if (ar_tense=="future") en_vp= "will "+ en_forms["base"]
+				if (ar_tense=="present" && (pronoun0=="he" || pronoun0=="she")) en_vp=en_forms["-s"]
+				if (ar_tense=="active") en_vp= en_forms["-ing"]
+				en_full=pronoun0+" "+en_vp
+				ar_form0=cur_form_obj[pronoun0]
+				console.log(en_full,ar_form0)
+				cur_temp_div=create_el_basic("div",cur_conj_div)
+				cur_temp_div.innerHTML="<b>"+en_full+"</b><br>"+ar_form0[0]+"<br>"+ar_form0[1]+"<br>"
+				cur_temp_div.className="col-sm-4"
+				cur_temp_div.style.backgroundColor=colors[colors_i]
+				colors_i+=1
+				play_img=img("img/play.png")
+				play_img.width=20
+				play_img.name=audio_prefix+ar_form0[0]+".mp3"
+				play_img.onclick=function(evt){
+
+
+					//console.log(evt.currentTarget)
+					audioObj = new Audio(evt.currentTarget.name);
+					audioObj.play();
+					// audioObj.addEventListener("canplaythrough", event => {
+					//    the audio is now playable; play it if permissions allow 
+					//   audioObj.play();
+					// })
+
+				}
+
+				cur_temp_div.appendChild(play_img)
+
+			}
+		}
+
+}
+
 function prepare_tutorial(){
 	tutorial_content=$$("tutorial_content")
 	for (const v_obj of game_data.slice(0,10)){
@@ -200,36 +291,19 @@ function prepare_tutorial(){
 
 			}
 		}
-		// headers=ar_tenses
-		// headers.unshift("");
-		// table_array.push(headers)
-		// for (pronoun0 of ar_pronouns){
-		// 	cur_row_items=[pronoun0]
-		// 	for  (tense0 of ar_tenses){
-		// 		try {cur_val=ar_forms[tense0][pronoun0]}
-		// 		catch {cur_val=null}
-		// 		if (cur_val==null) cell_val=""
-		// 		else cell_val=cur_val[0]+" "+cur_val[1]
-		// 		cur_row_items.push(cell_val)
-		// 	}
-		// 	table_array.push(cur_row_items)
-		// }
-		// //fill_table(forms_table,table_array)
-		// var forms_table=create_table(tutorial_content,table_array)
-		// forms_table.className="table table-bordered"
 
-		//console.log(ar_tenses,ar_pronouns)
 	}
 }
 
-function prepare_questions(){
-	tmp_question_list=[]
-	q_list=[]
+function prepare_questions(cur_verb_ids){
+	tmp_question_list=[] //the final list of questions generated
+	q_list=[] //list of raw question objects: English equivalent, Arabic form, and other meta info
 	verb_conjugations_obj={} //combining all conjugation questions with the same verb ID
 	tense_pronoun_obj={} //object to combine questions with the same tense and pronouns from different verbs
 	//data_obj=shuffle(game_data)
 	//console.log(game_data)
-	for (const v_obj of game_data.slice(0,10)){
+	for (const v_id of cur_verb_ids){
+		v_obj=verb_dict[v_id]
 		conj_list=[]
 		console.log(v_obj)
 		en_forms=v_obj["english"]
@@ -412,10 +486,18 @@ function prepare_questions(){
 }
 function init(){
 	console.log("Hello")
-	fname="txt/verbs-eg-data.json"
+	//fname="txt/verbs-eg-data.json" //this should go after selecting which Arabic
+	fname="txt/verbs-eg_ar-data.json"
 	read_file(fname,function(obj1){
 		//console.log(obj1)
 		game_data=obj1
+		// verb_id_list verb_dict
+		verb_id_list=[]
+		for (verb0 of game_data){
+			verb_id_list.push(verb0.id)
+			verb_dict[verb0.id]=verb0
+		}
+		loading.loaded_data=true
 		//prepare_questions()
 		go2menu()
 	})
@@ -470,6 +552,60 @@ function get_subobj(obj1,key1){
 	return obj1[key1]	
 }
 
+function remove_listeners(el0){
+	var old_element = el0;
+	var new_element = old_element.cloneNode(true);
+	old_element.parentNode.replaceChild(new_element, old_element);	
+}
+
+function get_dict(dict_obj,nested_keys,default_val=null){
+	tmp=dict_obj
+	for (ki in nested_keys) {
+		k0=nested_keys[ki]
+		// console.log(k0)
+		check0=tmp[k0]
+		// console.log(check0)
+		if (check0==null || check0==undefined) {
+			if (ki==len(nested_keys)-1 && default_val!=null) tmp[k0]=default_val
+			else tmp[k0]={}
+		} 
+		tmp=tmp[k0]
+		// console.log(tmp)
+	}
+	// console.log(dict_obj)
+	return dict_obj
+}
+
+function increment_dict(dict_obj,nested_keys){
+	tmp=dict_obj
+	for (ki in nested_keys) {
+		k0=nested_keys[ki]
+		check0=tmp[k0]
+		if (check0==null || check0==undefined) {
+			if (ki==len(nested_keys)-1) {
+
+				if (tmp[k0]==null) tmp[k0]=0
+				//console.log(tmp[k0])
+				//tmp[k0]+=1	
+				//console.log(tmp[k0])
+			} 
+			else tmp[k0]={}
+		}
+		if (ki==len(nested_keys)-1){
+			if (tmp[k0]==null) tmp[k0]=0
+			tmp[k0]+=1
+		}
+
+
+		tmp=tmp[k0]
+		// console.log(tmp)
+	}
+	// console.log(dict_obj)
+	return dict_obj	
+}
+// var old_element = document.getElementById("btn");
+// var new_element = old_element.cloneNode(true);
+// old_element.parentNode.replaceChild(new_element, old_element);
 // function recursive_obj(initial_obj,subkeys,level=0){
 // 	if (level>=len(subkeys)) return initial_obj
 // 	cur_subkey=subkeys[level]
@@ -481,6 +617,10 @@ function get_subobj(obj1,key1){
 function check_answer(evt){
 	cur_question=quiz.question_list[quiz.i]
 	trg=evt.currentTarget
+	trg.disabled=true
+
+	// console.log(trg)
+	// trg.removeEventListener("click", check_answer);
 	console.log(trg)
 	accuracy.current.all=get_subobj(accuracy.current,"all")
 	accuracy.current.verb=get_subobj(accuracy.current,"verb")
@@ -547,6 +687,8 @@ function next_q(){
 
 function is_correct(trg1){
 	$$("quiz_audio").play()
+	$$("quiz_answer").innerHTML=trg1.innerHTML
+
 
 	cur_question=quiz.question_list[quiz.i]
 	accuracy.current.all.correct=increment(accuracy.current.all.correct)
@@ -565,13 +707,15 @@ function is_correct(trg1){
 	cur_coin.width=20
 	trg1.appendChild(cur_coin)
 	dist_obj0=get_dist(cur_coin,$$("coin_img"))
+
+
 	//img_str='<img src="img/coin.png" id="cur_coin" width="25px" />'
 	// img_str='<img id="cur_coin" src="img/coin.png" height="20px" />'
 	// trg1.innerHTML+=" "+img_str
 	// cur_coin=$$("cur_coin")
 
 	gsap.to(cur_coin, {duration: 1, x:dist_obj0.delta_x,y: dist_obj0.delta_y,onComplete:show_coin});
-	
+
 	
 	// accuracy_percent=100*(accuracy.current.all.correct/accuracy.current.all.total)
 	// accuracy_percent_str=""+Math.round(accuracy_percent)+"%"
@@ -580,18 +724,27 @@ function is_correct(trg1){
 
 
 	trg1.style.backgroundColor="green"
+	// option_buttons=document.getElementsByClassName("quiz-option")
+	// for (btn0 of option_buttons) remove_listeners(btn0) //remove event listeners from all the buttons	
+
 	trg1.classList.remove("quiz-option")
 	trg1.classList.add("correct")
-	$(".quiz-option").on('click', function(event){ //remove event listener onclick from the incorrect options
-	    event.stopPropagation();
-	    event.stopImmediatePropagation();
-	});
+	// $(".quiz-option").on('click', function(event){ //remove event listener onclick from the incorrect options
+	//     event.stopPropagation();
+	//     event.stopImmediatePropagation();
+	// });
+
+
 
 	gsap.to(".quiz-option", {duration: 1, opacity: 0.05});
 	gsap.to(trg1, {duration: 2, y: 0,onComplete:next_q});
 }
 
+
+
 function is_wrong(trg1){
+	//trg1.disabled=true
+
 	cur_question=quiz.question_list[quiz.i]
 	accuracy.current.all.incorrect=increment(accuracy.current.all.incorrect)
 	accuracy.current.verb[cur_question.verb_id].incorrect=increment(accuracy.current.verb[cur_question.verb_id].incorrect)
@@ -601,7 +754,14 @@ function is_wrong(trg1){
 	show_score()
 
 	trg1.style.backgroundColor="red"
-	TweenMax.to(trg1, 0.1, {x:"+=20", yoyo:true, repeat:3});
+
+	TweenMax.to(trg1, 0.1, {x:"+=20", yoyo:true, repeat:3,onComplete:function(evt){
+		
+		cur_targets=this._targets
+		console.log("Hello",cur_targets)
+		// for (tmp_trg of cur_targets) remove_listeners(tmp_trg)
+	}});
+	//remove_listeners(trg1)
 
 	// tl = new TimelineMax({delay:0});
 	// tl.to(trg1, {duration: 0.5, x: 100});
@@ -639,9 +799,18 @@ function go2tutorial(){
 	$("#myModal").modal();
 }
 
+
+function go2quiz(){
+	gen_quiz()
+	deploy_pre_game()
+	show_screen("pre_game_div")
+
+}
+
 function start_quiz(){
 	show_screen("quiz_div")
-	gen_quiz()
+
+	
 	//accuracy.current accuracy.overall
 	results={}
 	results.n_answered=0
@@ -666,8 +835,11 @@ function gen_quiz(){
 	// ]
 
 	//quiz.question_list=[question] - for testing
-	quiz.question_list=prepare_questions()
-	quiz.i=0	
+	cur_ids=verb_id_list.slice(0,10)
+	//cur_ids=verb_id_list.slice(30,50)
+	quiz.question_list=prepare_questions(cur_ids)
+	quiz.i=0
+	quiz.cur_ids=cur_ids	
 }
 
 function repl_with_emoji(text0){
@@ -678,6 +850,42 @@ function repl_with_emoji(text0){
 	return text0
 }
 
+function show_conj_modal(obj1){
+	verb_name=obj1.name
+	console.log(verb_name)
+	prepare_conjugation(verb_name)
+	$("#myModal").modal();
+	
+}
+
+function comine_en_ar(item){
+	if (item==null) return ""
+	return item[0]+"<br>"+item[1]
+}
+
+function deploy_pre_game(){
+	//pre_game_verb_table
+	table_array=[]
+	headers=["<b>English</b>","<b>Base He</b>","Past I","Past He","Imperative","Active"]
+	table_array.push(headers)
+	for (v_id of quiz.cur_ids){
+		v_obj=verb_dict[v_id]
+		english=v_obj.english.base
+		ar_base_he=comine_en_ar(v_obj.basic["base_he"]) 
+		ar_past_i=comine_en_ar(v_obj.basic["past_i"])
+		ar_past_he=comine_en_ar(v_obj.basic["past_he"])
+		ar_imperative=comine_en_ar(v_obj.basic["imperative"])
+		ar_active=comine_en_ar(v_obj.basic["active"])
+		conj_link='<a href="javascript:void(0)" name="_name_" onclick="show_conj_modal(this)"><b>'+ar_base_he+"</b></a>"
+		conj_link=conj_link.replace("_name_",v_id)
+		cur_row=["<mark>"+english+"</mark>",conj_link,ar_past_i,ar_past_he,ar_imperative,ar_active]
+		table_array.push(cur_row)
+	}
+	fill_table("pre_game_verb_table",table_array)
+	
+
+}
+
 function deploy_question(){
 	cur_question=quiz.question_list[quiz.i]
 	answer.correct=cur_question.correct
@@ -686,8 +894,10 @@ function deploy_question(){
 	cur_item=cur_question.item
 	cur_item=repl_with_emoji(cur_item)
 	$$("quiz_item").innerHTML=cur_item
+	$$("quiz_answer").innerHTML=""
 
-	audio_src="../../audio/eg-verbs-mini/"+cur_question.audio+".mp3"
+	//audio_src="../../audio/eg-verbs-mini/"+cur_question.audio+".mp3"
+	audio_src=audio_prefix+cur_question.audio+".mp3"
 	audio_el=$$("quiz_audio")
 	audio_el.src=audio_src
 	if (cur_question.type.includes("recognition")) audio_el.controls=true
@@ -726,18 +936,21 @@ function deploy_question(){
   
 <div class="container">
   <div class="row">
-    <div class="col-sm-3">
+    <div class="col-sm-2">
 <!--       <h3>Column 1</h3>
       <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
       <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p> -->
     </div>
-    <div class="col-sm-6 text-center" id="main_div" style="background-color:lavender;">
+    <div class="col-sm-8 text-center" id="main_div" style="background-color:lavender;">
     	<div id="intro_div" class="screen">
 	      <h5>ALIF Verbs</h5>
 	      <p>Learn Verbs in Arabic and in Dialects!</p>
-	      <p><button class="btn btn-primary btn-block" onclick="go2menu()">Continue</button></p>
+	      <p><button class="btn btn-primary btn-block" onclick="go2menu()" hidden>Continue</button></p>
 
 	      <p><img id="champolu_logo" src="img/champolu_logo.png" height="100px" /></p>
+	      <button class="buttonload">
+		  <i class="fa fa-spinner fa-spin"></i>Loading
+		</button>
 
     	</div>
     	<div id="arabic_selection_menu" class="screen">
@@ -755,7 +968,7 @@ function deploy_question(){
 			    Tutorial
 			  </button></p>
 
-	      <p><button class="btn btn-primary btn-block" onclick="start_quiz()">Start Quiz!</button></p>
+	      <p><button class="btn btn-primary btn-block" onclick="go2quiz()">Quiz!</button></p>
 	      <p hidden>Help Button - Feedback Button</p>
     	</div>
 
@@ -774,6 +987,17 @@ function deploy_question(){
 	      <p>Badges and Achievements</p>
 	      <p>My Mistakes</p>
     	</div>
+   		<div id="pre_game_div" class="screen">
+	      <h5>Starting the Quiz</h5>
+	      <button class="btn btn-primary btn-block" onclick="start_quiz()">Start Quiz</button>
+	      <p>These are the verbs we will be covering here<br>Click on each to see the full conjugation:</p>
+	      <div class="table-responsive-sm">
+	      	<table id="pre_game_verb_table" class="table table-striped"></table>
+	      </div>
+	      <button class="btn btn-primary btn-block" onclick="start_quiz()" class="m-2">Start Quiz</button>
+
+    	</div>
+
    		<div id="quiz_div" class="screen">
    			<div class="row">
    				<div class="col" onclick="go2menu()">Menu <i class="fa fa-bars" aria-hidden="true"></i></div>
@@ -786,8 +1010,8 @@ function deploy_question(){
 	      <p id="quiz_prompt">Prompt: What does this verb mean?</p> 
 	      <h2 id="quiz_item">yel3ab</h2>
 	      <audio id="quiz_audio" src="../../audio/eg-verbs-mini/shoof.mp3" controls></audio>
+	      <h2 id="quiz_answer" style="color: green"></h2>
 	      <div id="quiz_tags"></div>
-	      <p id="quiz_answer"></p>
 	      <div id="quiz_options">
 			<button class="btn btn-primary btn-block" id="quiz_option0" onclick="check_answer(this)">Walk</button>
 			<button class="btn btn-primary btn-block" id="quiz_option1" onclick="check_answer(this)">Play</button>
@@ -873,7 +1097,7 @@ function deploy_question(){
 
 
     </div>
-    <div class="col-sm-3" id="ad_space">
+    <div class="col-sm-2" id="ad_space">
       <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1461464026864680"
      crossorigin="anonymous"></script>
       <!-- alif-verbs-vertical -->
