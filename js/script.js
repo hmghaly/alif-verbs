@@ -122,6 +122,100 @@ function get_local_strorage(obj_name,obj_key){
   return val
 }
 
+
+function create_dict(dict_obj,nested_keys,default_val=null){
+    tmp=dict_obj
+    for (ki in nested_keys) {
+        k0=nested_keys[ki]
+        // console.log(k0)
+        check0=tmp[k0]
+        // console.log(check0)
+        if (check0==null || check0==undefined) {
+            if (ki==len(nested_keys)-1 && default_val!=null) tmp[k0]=default_val
+            else tmp[k0]={}
+        } 
+        tmp=tmp[k0]
+        // console.log(tmp)
+    }
+    // console.log(dict_obj)
+    return dict_obj
+}
+
+//incrementing a dictionary with arbitrary subkeys dict["a"]["b"]["c"]["d"]
+function increment_dict(dict_obj,nested_keys){
+    tmp=dict_obj
+    for (ki in nested_keys) {
+        k0=nested_keys[ki]
+        check0=tmp[k0]
+        if (check0==null || check0==undefined) {
+            if (ki==len(nested_keys)-1) {
+                if (tmp[k0]==null) tmp[k0]=0
+            } 
+            else tmp[k0]={}
+        }
+        if (ki==len(nested_keys)-1){
+            if (tmp[k0]==null) tmp[k0]=0
+            tmp[k0]+=1
+        }
+        tmp=tmp[k0]
+    }
+    return dict_obj 
+}
+
+//get the value of a dict with certain subkeys, else return zero
+function get_dict_OLD(dict_obj,nested_keys){
+    tmp=dict_obj
+    for (ki in nested_keys) {
+        k0=nested_keys[ki]
+        check0=tmp[k0]
+        if (check0==null || check0==undefined) {
+            if (ki==len(nested_keys)-1) {
+                if (tmp[k0]==null) tmp[k0]=0
+            } 
+            else tmp[k0]={}
+        }
+        if (ki==len(nested_keys)-1){
+            if (tmp[k0]==null) tmp[k0]=0
+            //tmp[k0]+=1
+        }
+        tmp=tmp[k0]
+    }
+    return tmp 
+}
+
+function set_dict(dict_obj,nested_keys,val0){
+    tmp=dict_obj
+    for (ki in nested_keys) {
+        k0=nested_keys[ki]
+        if (ki==len(nested_keys)-1) tmp[k0]=val0
+        else{
+            check0=tmp[k0]
+            if (check0==null || check0==undefined) tmp[k0]={}
+        }
+
+        tmp=tmp[k0]
+    }
+    return dict_obj 
+}
+
+function get_dict(dict_obj,nested_keys,val0){
+    tmp=dict_obj
+    for (ki in nested_keys) {
+        k0=nested_keys[ki]
+        check0=tmp[k0]
+        if (ki==len(nested_keys)-1) {
+            if (check0==null || check0==undefined) tmp[k0]=val0
+        } 
+        else{
+            if (check0==null || check0==undefined) tmp[k0]={}
+        }
+
+        tmp=tmp[k0]
+    }
+    return tmp 
+}
+
+
 function create_el_basic(el_tag,el_parent){
     var el0=document.createElement(el_tag)
     el_parent.appendChild(el0)
@@ -395,14 +489,27 @@ function start_timer(timer_id,callback_fn,interval=1000){ //
     $$(timer_id).innerHTML=timer_str
     timer.starter = setInterval(function(){
         //console.log(timer.remianing_time)
+        if (timer.remianing_time==null) { //there is a bug causing timer to continue counting even after clearinterval
+            //timer={}
+            clearInterval(timer.starter)
+            return
+        } 
         timer.remianing_time-=interval/1000 //milliseconds
         //console.log(timer.remianing_time)
         timer_str=seconds2str(timer.remianing_time)
         $$(timer_id).innerHTML=timer_str
         if (timer.remianing_time<=0) {
+            console.log("timer ended",timer.remianing_time)
+            timer.remianing_time=null
+
             callback_fn()
-            clearInterval(timer.starter)
+            //clearInterval(timer.starter)
+            //timer.remianing_time=null
+            // console.log("timer finished")
+            // console.log(this)
+            
         } 
+        //if (timer.remianing_time==null) return
     }, interval);
 
     //console.log(timer_str)
@@ -411,3 +518,20 @@ function start_timer(timer_id,callback_fn,interval=1000){ //
 function pause_timer(){
     clearInterval(timer.starter)
 }
+
+
+function sort_array(array0,element_i,ascending=true){
+    array_copy=copy_obj(array0)
+    array_copy = array_copy.sort(function(a,b) {
+        if (ascending) return a[element_i] - b[element_i];
+        else return b[element_i] - a[element_i];
+    });  
+    return  array_copy
+}
+
+function copy_obj(obj1){
+    return JSON.parse(JSON.stringify(obj1))
+}
+// arr = arr.sort(function(a,b) {
+//     return a[1] - b[1];
+// });

@@ -1,9 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-61484468-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-61484468-1');
+    </script>
+
   <title>ALIF Verbs</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Alif Verbs - learn Arabic Verb Conjugation. Learn the different tenses and forms for verbs. Learn verbs in Modern Standard Arbic, Egyptian Arabic, and other Arabic varieties. Learn steadily, 5 minutes a day, five new verbs every day!">
+      <meta name="keywords" content="Arabic verbs forms conjugation alphabet letters reading writing listening games online web mobile androin ios fun app pronunciation diacritics tashkeel harakaat pronunciation">
+
+
+
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
@@ -34,12 +49,26 @@
   margin-left: -12px;
   margin-right: 8px;
 }
+.nav {
+    position:absolute;
+    bottom:0;
+    right:10%;
+}
+.sub_div {
+    position: absolute;
+    bottom: 0px;
+}
 
+.flex {
+    display: flex;
+}
 </style>
 
 <script type="text/javascript">
 var arabic_var=null //"msa" //ega lva sya lba maa saa gla iqa kwa lya sda dza tna 
+arabic_var="eg_ar"
 var cur_screen=null
+
 var user={}
 var quiz={}
 var answer={}
@@ -52,6 +81,10 @@ var game_data={} //parsed json file generated externally - a list of verb object
 var verb_id_list=[] //list of verb ids based on game data
 var verb_dict=[] //a dictionary of game data, where the key is the verb ID
 var audio_scope;
+var initial_n_hints=20
+var initial_quiz_time=300
+var overall_accuracy={} //temporary copy of the accuraacy before the start of the quiz
+	
 
 var audio_prefix="../../audio/eg-verbs-mini/"
 
@@ -66,25 +99,28 @@ if (nav_dict==null || nav_dict==undefined) var nav_dict={}
 
 var score=get_local_strorage(app_name,"score")
 if (score==null || score==undefined) var score={}	
-if (score.coins==null || score.coins==undefined) score.coins=0
+//if (score.coins==null || score.coins==undefined) score.coins=0
+
+
+var game_utils=get_local_strorage(app_name,"game_utils") //game utilities: coins, hints , etc
+if (game_utils==null || game_utils==undefined) var game_utils={}
+if (game_utils.coins==null || game_utils.coins==undefined) game_utils.coins=0
+if (game_utils.hints==null || game_utils.hints==undefined) game_utils.hints=initial_n_hints 	
 
 var accuracy=get_local_strorage(app_name,"accuracy")
 if (accuracy==null || accuracy==undefined) accuracy={}
-if (accuracy.overall==null) accuracy.overall={}
-if (accuracy.current==null) accuracy.current={}
+
+function reset_accuracy(){set_local_strorage(app_name,"accuracy",{})}
+// if (accuracy.overall==null) accuracy.overall={}
+// if (accuracy.current==null) accuracy.current={}
+
+transition_emojis=["img/face-with-open-mouth_1f62e.png","img/thinking-face_1f914.png"]
+positive_emojis=["img/relieved-face_1f60c.png","img/smiling-face_263a-fe0f.png","img/smiling-face-with-smiling-eyes_1f60a.png","img/smiling-face-with-sunglasses_1f60e.png","img/star-struck_1f929.png","img/winking-face_1f609.png","img/winking-face-with-tongue_1f61c.png"]
+negative_emojis=["img/face-screaming-in-fear_1f631.png","img/face-with-hand-over-mouth_1f92d.png","img/face-with-head-bandage_1f915.png","img/slightly-frowning-face_1f641.png","img/unamused-face_1f612.png"]
 	
-// if (accuracy.overall==null || accuracy.overall==undefined) var accuracy.overall={}
-// if (accuracy.current==null || accuracy.current==undefined) var accuracy.current={} //accuracy.current accuracy.overall
-
-
-// if (nav_dict.last_active==null) nav_dict.last_active=time_now;
-// time_diff_from_last_active=time_now-nav_dict.last_active
-// console.log("time diff",time_diff_from_last_active)
-
-// if (nav_dict.last_active==null) nav_dict.screen=null
-// else if (time_now-nav_dict.last_active>120000) nav_dict.screen=null //for a idle time > 120 seconds, reset the navigation screen
-//nav_dict["last_active"]=Date.now();
-//set_local_strorage(app_name,"nav_dict",nav_dict)
+var settings=get_local_strorage(app_name,"settings")
+if (settings==null || settings==undefined) settings={}
+if (settings.quiz_time==null || settings.quiz_time==undefined) settings.quiz_time=initial_quiz_time
 
 var cur_address=window.location.pathname //"/dev/alif-verbs/"
 
@@ -122,24 +158,35 @@ var cur_address=window.location.pathname //"/dev/alif-verbs/"
 // }
 
 function game_ended(){
+	console.log("game_ended")
 	show_screen("after_game_div")
 	//after_game_score after_game_accuracy after_game_correct_total analysis_table
 	$$("after_game_score").innerHTML=""+results.score
 	$$("after_game_accuracy").innerHTML=""+Math.round(results.accuracy*100)+"%"
 	correct_total_str=""+results.n_answered+ " / "+results.n_attempted
 	$$("after_game_correct_total").innerHTML=correct_total_str
-	keys=["correct","incorrect","total"]
-	headers=["Verb",'correct <img src="img/check.png" height="20px" />','incorrect <img src="img/wrong.png" height="20px" />',"total"]
+	//keys=["correct","incorrect","total"]
+	headers=["Verb",'correct <img src="img/check.png" height="20px" />','incorrect <img src="img/wrong.png" height="20px" />',"total",'Accuracy <img src="img/target.png" height="20px" />']
 
 	table_array=[]
 	table_array.push(headers)
-	for (verb_item of Object.keys(accuracy.current.verb)){
-		cur_row_items=[verb_item]
-		for (k0 of keys){
-			cur_val=accuracy.current.verb[verb_item][k0]
-			if (cur_val==null) cur_val=0
+	for (verb_id of Object.keys(accuracy[arabic_var].current.verb_id)){
+		conj_link='<a href="javascript:void(0)" name="_name_" onclick="show_conj_modal(this)"><b>'+verb_id+"</b></a>"
+		conj_link=conj_link.replace("_name_",verb_id)
+
+		cur_row_items=[conj_link]
+		tmp_dict={}
+		for (k0 of ["correct","incorrect","total"]){
+			cur_val=get_dict(accuracy,[arabic_var,"current","verb_id",verb_id,k0],0)
+			if (cur_val==null || cur_val==undefined) cur_val=0
+			tmp_dict[k0]=cur_val
+			console.log(cur_val)
+			// cur_val=accuracy[arabic_var].current.verb[verb_item][k0]
+			// if (cur_val==null) cur_val=0
 			cur_row_items.push(""+cur_val)
 		}
+		cur_accuracy_percent=Math.round(100*tmp_dict["correct"]/tmp_dict["total"])
+		cur_row_items.push(""+cur_accuracy_percent+"%")
 		table_array.push(cur_row_items)
 
 	}
@@ -486,6 +533,7 @@ function prepare_questions(cur_verb_ids){
 }
 function init(){
 	console.log("Hello")
+	//$$("main_div").setAttribute("style","height:50px");
 	//fname="txt/verbs-eg-data.json" //this should go after selecting which Arabic
 	fname="txt/verbs-eg_ar-data.json"
 	read_file(fname,function(obj1){
@@ -558,51 +606,43 @@ function remove_listeners(el0){
 	old_element.parentNode.replaceChild(new_element, old_element);	
 }
 
-function get_dict(dict_obj,nested_keys,default_val=null){
-	tmp=dict_obj
-	for (ki in nested_keys) {
-		k0=nested_keys[ki]
-		// console.log(k0)
-		check0=tmp[k0]
-		// console.log(check0)
-		if (check0==null || check0==undefined) {
-			if (ki==len(nested_keys)-1 && default_val!=null) tmp[k0]=default_val
-			else tmp[k0]={}
-		} 
-		tmp=tmp[k0]
-		// console.log(tmp)
-	}
-	// console.log(dict_obj)
-	return dict_obj
-}
+// function get_dict(dict_obj,nested_keys,default_val=null){
+// 	tmp=dict_obj
+// 	for (ki in nested_keys) {
+// 		k0=nested_keys[ki]
+// 		// console.log(k0)
+// 		check0=tmp[k0]
+// 		// console.log(check0)
+// 		if (check0==null || check0==undefined) {
+// 			if (ki==len(nested_keys)-1 && default_val!=null) tmp[k0]=default_val
+// 			else tmp[k0]={}
+// 		} 
+// 		tmp=tmp[k0]
+// 		// console.log(tmp)
+// 	}
+// 	// console.log(dict_obj)
+// 	return dict_obj
+// }
 
-function increment_dict(dict_obj,nested_keys){
-	tmp=dict_obj
-	for (ki in nested_keys) {
-		k0=nested_keys[ki]
-		check0=tmp[k0]
-		if (check0==null || check0==undefined) {
-			if (ki==len(nested_keys)-1) {
-
-				if (tmp[k0]==null) tmp[k0]=0
-				//console.log(tmp[k0])
-				//tmp[k0]+=1	
-				//console.log(tmp[k0])
-			} 
-			else tmp[k0]={}
-		}
-		if (ki==len(nested_keys)-1){
-			if (tmp[k0]==null) tmp[k0]=0
-			tmp[k0]+=1
-		}
-
-
-		tmp=tmp[k0]
-		// console.log(tmp)
-	}
-	// console.log(dict_obj)
-	return dict_obj	
-}
+// function increment_dict(dict_obj,nested_keys){
+// 	tmp=dict_obj
+// 	for (ki in nested_keys) {
+// 		k0=nested_keys[ki]
+// 		check0=tmp[k0]
+// 		if (check0==null || check0==undefined) {
+// 			if (ki==len(nested_keys)-1) {
+// 				if (tmp[k0]==null) tmp[k0]=0
+// 			} 
+// 			else tmp[k0]={}
+// 		}
+// 		if (ki==len(nested_keys)-1){
+// 			if (tmp[k0]==null) tmp[k0]=0
+// 			tmp[k0]+=1
+// 		}
+// 		tmp=tmp[k0]
+// 	}
+// 	return dict_obj	
+// }
 // var old_element = document.getElementById("btn");
 // var new_element = old_element.cloneNode(true);
 // old_element.parentNode.replaceChild(new_element, old_element);
@@ -615,6 +655,10 @@ function increment_dict(dict_obj,nested_keys){
 // }
 
 function check_answer(evt){
+	cur_transition_emoji=shuffle(transition_emojis)[0]
+	$$("mood_img").src=cur_transition_emoji//"img/face-with-open-mouth_1f62e.png"
+
+
 	cur_question=quiz.question_list[quiz.i]
 	trg=evt.currentTarget
 	trg.disabled=true
@@ -622,19 +666,35 @@ function check_answer(evt){
 	// console.log(trg)
 	// trg.removeEventListener("click", check_answer);
 	console.log(trg)
-	accuracy.current.all=get_subobj(accuracy.current,"all")
-	accuracy.current.verb=get_subobj(accuracy.current,"verb")
-	accuracy.current.tense=get_subobj(accuracy.current,"tense")
-	accuracy.current.pronoun=get_subobj(accuracy.current,"pronoun")
-	accuracy.current.verb[cur_question.verb_id]=get_subobj(accuracy.current.verb,cur_question.verb_id)
-	accuracy.current.tense[cur_question.tense]=get_subobj(accuracy.current.tense,cur_question.tense)
-	accuracy.current.pronoun[cur_question.pronoun]=get_subobj(accuracy.current.pronoun,cur_question.pronoun)
-	//console.log("check1", accuracy.current.all.total)
-	accuracy.current.all.total=increment(accuracy.current.all.total)
-	//console.log("check2", accuracy.current.all.total)
-	accuracy.current.verb[cur_question.verb_id].total=increment(accuracy.current.verb[cur_question.verb_id].total)
-	accuracy.current.tense[cur_question.tense].total=increment(accuracy.current.tense[cur_question.tense].total)
-	accuracy.current.pronoun[cur_question.pronoun].total=increment(accuracy.current.pronoun[cur_question.pronoun].total)
+	for (acc_scope of ["current","overall"]){
+		increment_dict(accuracy,[arabic_var, acc_scope,"all","total"])
+		for (metric of ["verb_id","tense","pronoun","type"]) increment_dict(accuracy,[arabic_var,acc_scope,metric,cur_question[metric],"total"])
+	}
+	console.log("total >>", accuracy[arabic_var]["current"]["all"])
+	set_local_strorage(app_name,"accuracy",accuracy)
+	// increment_dict(accuracy,[arabic_var, "current","all","total"])
+	// increment_dict(accuracy,[arabic_var, "overall","all","total"])
+	// for (metric of ["verb","tense","pronoun","type"]){
+	// 	increment_dict(accuracy,[arabic_var,"current",metric,cur_question[metric],"total"])
+	// 	increment_dict(accuracy,[arabic_var,"overall",metric,cur_question[metric],"total"])
+	// }
+	
+
+	
+
+	// accuracy.current.all=get_subobj(accuracy.current,"all")
+	// accuracy.current.verb=get_subobj(accuracy.current,"verb")
+	// accuracy.current.tense=get_subobj(accuracy.current,"tense")
+	// accuracy.current.pronoun=get_subobj(accuracy.current,"pronoun")
+	// accuracy.current.verb[cur_question.verb_id]=get_subobj(accuracy.current.verb,cur_question.verb_id)
+	// accuracy.current.tense[cur_question.tense]=get_subobj(accuracy.current.tense,cur_question.tense)
+	// accuracy.current.pronoun[cur_question.pronoun]=get_subobj(accuracy.current.pronoun,cur_question.pronoun)
+	// //console.log("check1", accuracy.current.all.total)
+	// accuracy.current.all.total=increment(accuracy.current.all.total)
+	// //console.log("check2", accuracy.current.all.total)
+	// accuracy.current.verb[cur_question.verb_id].total=increment(accuracy.current.verb[cur_question.verb_id].total)
+	// accuracy.current.tense[cur_question.tense].total=increment(accuracy.current.tense[cur_question.tense].total)
+	// accuracy.current.pronoun[cur_question.pronoun].total=increment(accuracy.current.pronoun[cur_question.pronoun].total)
 
 	results.n_attempted=increment(results.n_attempted)
 	// accuracy.current.tense.total=increment(accuracy.current.tense.total)
@@ -660,23 +720,41 @@ function check_answer(evt){
 	//gsap.to(cur_selector, {duration: 0.5, x: 0});
 }
 
+function show_hints(){ //show how many hints are available
+	$$("hint_count").innerHTML=""+game_utils.hints
+	// if (accuracy.current.all.correct==null) accuracy.current.all.correct=0
+	// accuracy_percent=100*(accuracy.current.all.correct/accuracy.current.all.total)
+	// accuracy_percent_str=""+Math.round(accuracy_percent)+"%"
+	// $$("accuracy_div").innerHTML=accuracy_percent_str	
+}
+
 function show_accuracy(){ //calculate and display updated accuracy with each answer given
-	if (accuracy.current.all.correct==null) accuracy.current.all.correct=0
-	accuracy_percent=100*(accuracy.current.all.correct/accuracy.current.all.total)
+	acc_total=get_dict(accuracy,[arabic_var,"current","all","total"],0) //accuracy[arabic_var]["current"]["total"]
+	acc_correct=get_dict(accuracy,[arabic_var,"current","all", "correct"],0) //accuracy[arabic_var]["current"]["correct"]
+	acc_ratio=0
+	if (acc_total>0) acc_ratio=acc_correct/acc_total
+	//if (accuracy.current.all.correct==null) accuracy.current.all.correct=0
+	accuracy_percent=100*acc_ratio//(accuracy.current.all.correct/accuracy.current.all.total)
 	accuracy_percent_str=""+Math.round(accuracy_percent)+"%"
 	$$("accuracy_div").innerHTML=accuracy_percent_str	
 }
 
 function show_score(){
-	if (accuracy.current.all.correct==null) accuracy.current.all.correct=0
-	results.accuracy=accuracy.current.all.correct/accuracy.current.all.total
+	acc_total=get_dict(accuracy,[arabic_var,"current","all", "total"],0) //accuracy[arabic_var]["current"]["total"]
+	acc_correct=get_dict(accuracy,[arabic_var,"current","all", "correct"],0) //accuracy[arabic_var]["current"]["correct"]
+	acc_ratio=0
+	if (acc_total>0) acc_ratio=acc_correct/acc_total
+	console.log("check accuracy ration >>>>",acc_ratio)
+
+	//if (accuracy.current.all.correct==null) accuracy.current.all.correct=0
+	results.accuracy=acc_ratio //accuracy.current.all.correct/accuracy.current.all.total
 	results.score=Math.round(10*results.n_answered*results.accuracy) 
 	score_str=""+results.score
 	$$("score_div").innerHTML=score_str
 }
 
 function show_coin(){
-	$$("coin_count").innerHTML=score.coins
+	$$("coin_count").innerHTML=game_utils.coins
 }
 
 function next_q(){
@@ -685,35 +763,35 @@ function next_q(){
 }
 
 
-function is_correct(trg1){
-	$$("quiz_audio").play()
-	$$("quiz_answer").innerHTML=trg1.innerHTML
+function is_correct(trg1){ //if the answer is correct
+	$$("quiz_audio").play() //play the audio of the quiz
+	$$("quiz_answer").innerHTML=trg1.innerHTML //display the quiz answer
+	//change the mood image to success emoji
+	gsap.to("#mood_img", {duration: 1, x:0,onComplete:function(){
+		$$("mood_img").src=shuffle(positive_emojis)[0] //"img/face-with-open-mouth_1f62e.png"
+	}});
 
-
+	//update accuracy metrics
 	cur_question=quiz.question_list[quiz.i]
-	accuracy.current.all.correct=increment(accuracy.current.all.correct)
-	console.log("accuracy.current.all.correct",accuracy.current.all.correct)
-	accuracy.current.verb[cur_question.verb_id].correct=increment(accuracy.current.verb[cur_question.verb_id].correct)
-	accuracy.current.tense[cur_question.tense].correct=increment(accuracy.current.tense[cur_question.tense].correct)
-	accuracy.current.pronoun[cur_question.pronoun].correct=increment(accuracy.current.pronoun[cur_question.pronoun].correct)
-	results.n_answered=increment(results.n_answered)
+	for (acc_scope of ["current","overall"]){
+		increment_dict(accuracy,[arabic_var, acc_scope,"all","correct"])
+		for (metric of ["verb_id","tense","pronoun","type"]) increment_dict(accuracy,[arabic_var,acc_scope,metric,cur_question[metric],"correct"])
+	}
+	set_local_strorage(app_name,"accuracy",accuracy)
+	console.log("correct >>", accuracy[arabic_var]["current"]["all"])
+
+
+	results.n_answered=increment(results.n_answered) //update number of questions answered
 	show_accuracy()
 	show_score()
-	// rect=trg1.getBoundingClientRect()
-	// console.log(rect)
-	score.coins=increment(score.coins)
+
+	//animate and update coin
+	game_utils.coins=increment(game_utils.coins)
 	cur_coin=img("img/coin.png",onload=null,id="")
 	cur_coin.height=20
 	cur_coin.width=20
 	trg1.appendChild(cur_coin)
 	dist_obj0=get_dist(cur_coin,$$("coin_img"))
-
-
-	//img_str='<img src="img/coin.png" id="cur_coin" width="25px" />'
-	// img_str='<img id="cur_coin" src="img/coin.png" height="20px" />'
-	// trg1.innerHTML+=" "+img_str
-	// cur_coin=$$("cur_coin")
-
 	gsap.to(cur_coin, {duration: 1, x:dist_obj0.delta_x,y: dist_obj0.delta_y,onComplete:show_coin});
 
 	
@@ -723,7 +801,7 @@ function is_correct(trg1){
 	// $$("accuracy_div").innerHTML=accuracy_percent_str
 
 
-	trg1.style.backgroundColor="green"
+	trg1.style.backgroundColor="green" //change button background to green
 	// option_buttons=document.getElementsByClassName("quiz-option")
 	// for (btn0 of option_buttons) remove_listeners(btn0) //remove event listeners from all the buttons	
 
@@ -744,12 +822,22 @@ function is_correct(trg1){
 
 function is_wrong(trg1){
 	//trg1.disabled=true
-
+	gsap.to("#mood_img", {duration: 1, x:0,onComplete:function(){
+		$$("mood_img").src=shuffle(negative_emojis)[0] //"img/face-with-open-mouth_1f62e.png"
+	}});
 	cur_question=quiz.question_list[quiz.i]
-	accuracy.current.all.incorrect=increment(accuracy.current.all.incorrect)
-	accuracy.current.verb[cur_question.verb_id].incorrect=increment(accuracy.current.verb[cur_question.verb_id].incorrect)
-	accuracy.current.tense[cur_question.tense].incorrect=increment(accuracy.current.tense[cur_question.tense].incorrect)
-	accuracy.current.pronoun[cur_question.pronoun].incorrect=increment(accuracy.current.pronoun[cur_question.pronoun].incorrect)
+	for (acc_scope of ["current","overall"]){
+		increment_dict(accuracy,[arabic_var, acc_scope,"all","incorrect"])
+		for (metric of ["verb_id","tense","pronoun","type"]) increment_dict(accuracy,[arabic_var,acc_scope,metric,cur_question[metric],"incorrect"])
+	}
+	set_local_strorage(app_name,"accuracy",accuracy)
+	console.log("wrong >>", accuracy[arabic_var]["current"]["all"])
+
+
+	// accuracy.current.all.incorrect=increment(accuracy.current.all.incorrect)
+	// accuracy.current.verb[cur_question.verb_id].incorrect=increment(accuracy.current.verb[cur_question.verb_id].incorrect)
+	// accuracy.current.tense[cur_question.tense].incorrect=increment(accuracy.current.tense[cur_question.tense].incorrect)
+	// accuracy.current.pronoun[cur_question.pronoun].incorrect=increment(accuracy.current.pronoun[cur_question.pronoun].incorrect)
 	show_accuracy()
 	show_score()
 
@@ -815,10 +903,53 @@ function start_quiz(){
 	results={}
 	results.n_answered=0
 	results.n_attempted=0
-	accuracy.current={}
-	timer.remianing_time=300 //to be set by the settings
+	accuracy=set_dict(accuracy,[arabic_var,"current"],{})
+	//accuracy=set_dict(accuracy,[arabic_var,"overall"])
+	//copy overall accuracy to compare results at the end of the quiz to the "before"
+	try {
+		tmp_accuracy=accuracy[arabic_var]["overall"]
+		overall_accuracy=JSON.parse(JSON.stringify(tmp_accuracy))
+	}
+	catch {
+		overall_accuracy={}
+	}
+	// overall_accuracy=JSON.parse(JSON.stringify(get_dict(accuracy,[arabic_var,"overall"],{})))
+	// console.log(overall_accuracy)
+
+	timer.remianing_time=settings.quiz_time //to be set by the settings $$("timer_div")
 	start_timer("timer_div",game_ended)
+	show_hints()
 	deploy_question()
+}
+
+function use_hint(){
+	if (game_utils.hints==0) return
+	crossed=cross_out_options() //check if answers were crossed
+	if (crossed){
+		game_utils.hints-=1
+		show_hints()
+	}
+}
+
+function cross_out_options(){
+	cur_question=quiz.question_list[quiz.i]
+	option_buttons=document.getElementsByClassName("quiz-option") 
+	n_to_cross=option_buttons.length/2
+	//console.log(n_to_cross)
+	if (n_to_cross<1) return false
+	n_crossed=0
+	option_buttons=shuffle(option_buttons)
+	for (opt_btn of option_buttons){
+		console.log(opt_btn)
+		if (opt_btn.name==cur_question.correct) continue
+		gsap.to(opt_btn, {duration: 0.2, opacity:0.05});
+		opt_btn.disabled=true
+		opt_btn.classList.remove("quiz-option")
+		n_crossed+=1
+		if (n_crossed==n_to_cross) break
+	}
+	return true
+
 }
 
 function gen_quiz(){
@@ -833,9 +964,65 @@ function gen_quiz(){
 	// {id:"drink",label:"drink"},
 	// {id:"walk",label:"walk"},
 	// ]
+	//an algorithm for identifying the least accurate verbs, and the ones with least exposure
+	n_least_accuracy=3
+	n_least_total=4 
+	n_all_ids=10
+	cur_ids=[]
+	least_accurate_ids=[] //ids of verbs of least accuracy
+	least_total_ids=[] // ids of verbs of least exposure
+	new_ids=[] //ids of verbs to be newly introduced
+
+	//get the verbs done before, from the overall accuracy object
+	verb_ids_completed_obj=get_dict(accuracy,[arabic_var,"overall","verb_id"],{})
+	tmp_completed_verb_list=[]
+	completed_ids=Object.keys(verb_ids_completed_obj)
+	for (c_id of completed_ids){
+		cur_total=verb_ids_completed_obj[c_id]["total"]
+		cur_correct=verb_ids_completed_obj[c_id]["correct"]
+		if (cur_correct==null || cur_correct==undefined) cur_correct=0
+		cur_accuracy=cur_correct/cur_total
+		tmp_completed_verb_list.push([c_id,cur_accuracy,cur_total])
+	}
+	//console.log(tmp_completed_verb_list)
+	//tmp_completed_verb_list=sort_array(tmp_completed_verb_list,1,true)
+	sorted_by_least_accuracy=sort_array(tmp_completed_verb_list,1,true)
+	sorted_by_least_total=sort_array(tmp_completed_verb_list,2,true)
+	console.log("sorted_by_least_accuracy", sorted_by_least_accuracy)
+	console.log("sorted_by_least_total", sorted_by_least_total)
+	for (item of sorted_by_least_accuracy){
+		if (item[1]==1) continue //exclude items with 100% accuracy
+		if (len(least_accurate_ids)>=n_least_accuracy) break
+		least_accurate_ids.push(item[0])
+		cur_ids.push(item[0])
+	}
+	for (item of sorted_by_least_total){
+		//if (item[1]==1) continue //exclude items with 100% accuracy
+		if (cur_ids.indexOf(item[0])>-1) continue
+
+		if (len(least_total_ids)>=n_least_total) break
+		least_total_ids.push(item[0])
+		cur_ids.push(item[0])
+	}
+	for (v_id0 of verb_id_list){
+		if (completed_ids.indexOf(v_id0)>-1) continue
+		if (len(cur_ids)>=n_all_ids) break
+		cur_ids.push(v_id0)	
+		new_ids.push(v_id0)	
+	}
+	console.log("least_accurate_ids",least_accurate_ids)
+	console.log("least_total_ids",least_total_ids)
+	console.log("new_ids",new_ids)
+
+	// tmp_completed_verb_list=sort_array(tmp_completed_verb_list,1,false)
+	// console.log(tmp_completed_verb_list)
+	// tmp_completed_verb_list=sort_array(tmp_completed_verb_list,2,true)
+	// console.log(tmp_completed_verb_list)
+	// tmp_completed_verb_list=sort_array(tmp_completed_verb_list,2,false)
+	// console.log(tmp_completed_verb_list)
 
 	//quiz.question_list=[question] - for testing
-	cur_ids=verb_id_list.slice(0,10)
+	//cur_ids=verb_id_list.slice(0,10)
 	//cur_ids=verb_id_list.slice(30,50)
 	quiz.question_list=prepare_questions(cur_ids)
 	quiz.i=0
@@ -929,6 +1116,7 @@ function deploy_question(){
 
 <body onload="init()">
 
+
 <!-- <div class="jumbotron text-center">
   <h1>ALIF Verbs 4</h1>
   <p>Learn Verbs in Arabic and in Dialects!</p> 
@@ -941,8 +1129,8 @@ function deploy_question(){
       <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
       <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p> -->
     </div>
-    <div class="col-sm-8 text-center" id="main_div" style="background-color:lavender;">
-    	<div id="intro_div" class="screen">
+    <div class="col-sm-8 text-center" id="main_div" >
+    	<div id="intro_div" class="screen" style="background-color:lavender;height: 500px">
 	      <h5>ALIF Verbs</h5>
 	      <p>Learn Verbs in Arabic and in Dialects!</p>
 	      <p><button class="btn btn-primary btn-block" onclick="go2menu()" hidden>Continue</button></p>
@@ -953,23 +1141,89 @@ function deploy_question(){
 		</button>
 
     	</div>
-    	<div id="arabic_selection_menu" class="screen">
+    	<div id="arabic_selection_menu" class="screen" style="background-color:lavender;height: 500px">
 	      <h5>Which Arabic to learn?</h5>
 	      <p><button class="btn btn-primary btn-block" name="msa" onclick="select_arabic(this)" hidden>Modern Standard Arabic</button></p>
 	      <p><button class="btn btn-primary btn-block" name="ega" onclick="select_arabic(this)">Egyptian Arabic</button></p>
     	</div>
 
-    	<div id="main_menu" class="screen"> 
-	      <h5>Get Started!</h5>
-	      <p>Go to tutorial to learn the verbs, then start the quiz</p>
-	      <p><button class="btn btn-primary btn-block" onclick="go2tutorial()" hidden>Tutorial</button></p>
+    	<div id="main_menu" class="screen" style="background-color:lavender;height: 500px"> 
+    		<div class="row">
+    			<div class="col">Feedback</div>
+    			<div class="col"><h2>ALIF Verbs</h2></div>
+    			<div class="col">Profile</div>
+    		</div>
+    	<div class="row">
+    		<div class="col">Help</div>
+    		<div class="col">
+    			<span id="lang_name" class="small" hidden>Egyptian Arabic</span>
+    			<img id="lang_flag" src="img/egypt.svg" height="25px" hidden/>
+    			<button class="btn btn-primary btn-sm"><img id="lang_flag" src="img/egypt.svg" height="25px"></button>
+    		</div>
+    		<div class="col"></div>
+    	</div>
+    		
+<!-- 	      <p>Egyptian Arabic 
+	      	<img src="img/egypt.svg" height="25px"> <button class="btn btn-primary btn-sm">Change</button></p> -->
+	      	<div class="text-center">
+	      		<p>Go to tutorial to learn the verbs, then start the quiz</p>	
+			  <button type="button" class="btn btn-warning w-75 m-2" onclick="go2tutorial()">
+			    Tutorials and Lessons
+			  </button>	<br>    
+			  <button class="btn btn-primary w-75 m-2" onclick="go2quiz()">Quiz!</button>  			
+	      	</div>
+	      
+<!-- 	      <p><button class="btn btn-primary btn-block" onclick="go2tutorial()" hidden>Tutorial</button></p> -->
 <!-- 	        <p> <button type="button" class="btn btn-block btn-warning" data-toggle="modal" data-target="#myModal"> -->
-			  <p>  <button type="button" class="btn btn-block btn-warning" onclick="go2tutorial()">
-			    Tutorial
-			  </button></p>
 
-	      <p><button class="btn btn-primary btn-block" onclick="go2quiz()">Quiz!</button></p>
-	      <p hidden>Help Button - Feedback Button</p>
+
+
+
+<!-- 	      <div class="container-fluid d-flex flex-column h-100">
+	      </div> -->
+	      <div class="row">
+	      	<div class="col">
+	      		<img src="img/trophy.png" height="30px"><br>
+	      		0 Days Streak
+	      	</div>
+	      	<div class="col">
+	      		<img src="img/clock.png" height="30px"><br>
+	      		0/5 minutes today</div>
+	      </div>
+	      <!-- Very UGLY hack to keep the bottom menu at the bottom -->
+<!-- 	      <div style="height: 150px;"></div> -->
+	      
+
+<!-- 	      <div id="bottom-menu-nav" class="row justify-content-center align-self-center" style="height: 40px"> -->
+<!-- 	      <div id="bottom-menu-nav" style="position: absolute;height: 40px;width:100%;bottom: 40px">  -->
+	      	    <div id="bottom_nav" class="flex" style="position: absolute;heigh:50px;width:100%;top: 440px">
+			        <div style="width:100%">
+						<img src="img/gear.png" height="30px"><br>
+						<small>Settings</small>
+			        </div>
+			        <div style="width:100%">
+						<img src="img/rocket.png" height="30px"><br>
+						<small>Progress</small>
+			        </div>
+			        <div style="width:100%">
+						<img src="img/star_2b50.png" height="30px"><br>
+						<small>Leaderboard</small>
+			        </div>
+			        <div style="width:100%">
+						<img src="img/shopping-cart_1f6d2.png" height="30px"><br>
+						<small>Shop</small>
+			        </div>
+			    </div>
+
+<!--             </div> -->
+
+<!-- 	      <div class="row" style="top: 380px;position: absolute;"> 
+                <div class="col-sm-3">Settings</div>
+                <div class="col-sm-3">Progress</div>
+                <div class="col-sm-3">Leaderboard</div>
+                <div class="col-sm-3">Shop</div>
+            </div>
+ -->
     	</div>
 
     	<div id="tutorial_menu" class="screen">
@@ -989,19 +1243,20 @@ function deploy_question(){
     	</div>
    		<div id="pre_game_div" class="screen">
 	      <h5>Starting the Quiz</h5>
-	      <button class="btn btn-primary btn-block" onclick="start_quiz()">Start Quiz</button>
+	      <button class="btn btn-primary w-75 m-2" onclick="start_quiz()">Start Quiz</button>
 	      <p>These are the verbs we will be covering here<br>Click on each to see the full conjugation:</p>
 	      <div class="table-responsive-sm">
 	      	<table id="pre_game_verb_table" class="table table-striped"></table>
 	      </div>
-	      <button class="btn btn-primary btn-block" onclick="start_quiz()" class="m-2">Start Quiz</button>
+	      <button class="btn btn-primary w-75 m-2" onclick="start_quiz()" class="m-2">Start Quiz</button>
 
     	</div>
-
+<!-- <i class="fa fa-bars" aria-hidden="true"></i> -->
+<!-- <i class="fa fa-clock-o" aria-hidden="true"></i> -->
    		<div id="quiz_div" class="screen">
    			<div class="row">
-   				<div class="col" onclick="go2menu()">Menu <i class="fa fa-bars" aria-hidden="true"></i></div>
-   				<div class="col"><span id="timer_div">05:12</span> <i class="fa fa-clock-o" aria-hidden="true"></i></div>
+   				<div class="col" onclick="go2menu()">Menu <img src="img/home.png" height="20px" /> </div>
+   				<div class="col"><span id="timer_div">05:12</span> <img src="img/clock.png" height="20px" /> </div>
    				<div class="col"><span id="score_div">Score</span> <img src="img/trophy.png" height="20px" /></div>
    				<div class="col"><span id="accuracy_div">100%</span> <img src="img/target.png" height="20px" /></div>
    			</div> 
@@ -1021,7 +1276,7 @@ function deploy_question(){
    			<div class="row m-1">
    				<div class="col"><span id="coin_count">0</span>&nbsp;<img id="coin_img" src="img/coin.png" height="20px" /></div>
    				<div class="col"><img id="mood_img" src="img/slightly-smiling-face_1f642.png" height="20px" /></div>
-   				<div class="col"><span id="hint_count">0</span>&nbsp;<img src="img/light-bulb.png" height="20px" /></div>
+   				<div class="col" onclick="use_hint()"><span id="hint_count">0</span>&nbsp;<img src="img/light-bulb.png" height="20px" /></div>
    			</div> 
 
     	</div>
@@ -1116,6 +1371,9 @@ function deploy_question(){
       <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p> -->
     </div>
   </div>
+
+
+
 </div>
 
 
