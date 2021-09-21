@@ -17,6 +17,10 @@
 <meta name="description" content="Alif Verbs - learn Arabic Verb Conjugation. Learn the different tenses and forms for verbs. Learn verbs in Modern Standard Arbic, Egyptian Arabic, and other Arabic varieties. Learn steadily, 5 minutes a day, five new verbs every day!">
       <meta name="keywords" content="Arabic verbs forms conjugation alphabet letters reading writing listening games online web mobile androin ios fun app pronunciation diacritics tashkeel harakaat pronunciation">
 
+      <meta name="google-signin-client_id" content="761509954064-gb2hb7onq6igr2nrqvc6v7dnegd99vo5.apps.googleusercontent.com">
+      <meta name="google-signin-scope" content="profile email">
+      <script src="https://apis.google.com/js/platform.js" async defer></script>
+
 
 
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
@@ -25,6 +29,9 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
   <link rel="stylesheet" href="css/font-awesome-4.7.0/css/font-awesome.min.css">
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
 
   <script src="js/script.js"></script>
 
@@ -62,6 +69,20 @@
 .flex {
     display: flex;
 }
+
+.g-signin2{
+  width: 100%;
+}
+.g-signin2 > div{
+  margin: 0 auto;
+}
+
+.fb-login-button{
+	width: 100%;
+}
+.fb-login-button > div{
+  margin: 0 auto;
+}
 </style>
 
 <script type="text/javascript">
@@ -87,6 +108,7 @@ var overall_accuracy={} //temporary copy of the accuraacy before the start of th
 	
 
 var audio_prefix="../../audio/eg-verbs-mini/"
+var audio_prefix="https://champolu.net/rec/projects/eg-verbs-100/user/"
 
 var app_name="alif-verbs"
 // nav_dict["arabic_var"]=null
@@ -549,6 +571,10 @@ function init(){
 		//prepare_questions()
 		go2menu()
 	})
+
+// 	FB.getLoginStatus(function(response) {
+//     statusChangeCallback(response);
+// });
 
 	// cur_qs_dict=parse_qs()
 	// arabic_var=cur_qs_dict.arabic_var
@@ -1112,9 +1138,58 @@ function deploy_question(){
 		op_btn.onclick=check_answer
 	}
 }
+
+function go2profile(){
+	show_screen("profile_div")
+	$("#login_modal").modal();
+
+}
+
+function login_success(){
+	go2menu()
+	$( "#dialog" ).dialog();
+	$('.modal').modal('hide');
+
+}
+
+
+
+function checkLoginState() {
+  FB.getLoginStatus(function(response) {
+    statusChangeCallback(response);
+  });
+}
+
+
+</script>
+
+
+<script>
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '443130417462988',
+      cookie     : true,
+      xfbml      : true,
+      version    : 'v12.0'
+    });
+      
+    FB.AppEvents.logPageView();   
+      
+  };
+
+  (function(d, s, id){
+     var js, fjs = d.getElementsByTagName(s)[0];
+     if (d.getElementById(id)) {return;}
+     js = d.createElement(s); js.id = id;
+     js.src = "https://connect.facebook.net/en_US/sdk.js";
+     fjs.parentNode.insertBefore(js, fjs);
+   }(document, 'script', 'facebook-jssdk'));
 </script>
 
 <body onload="init()">
+
+	<div id="fb-root"></div>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v12.0&appId=443130417462988&autoLogAppEvents=1" nonce="9YXf4wrt"></script>
 
 
 <!-- <div class="jumbotron text-center">
@@ -1149,12 +1224,16 @@ function deploy_question(){
 
     	<div id="main_menu" class="screen" style="background-color:lavender;height: 500px"> 
     		<div class="row">
-    			<div class="col">Feedback</div>
+    			<div class="col text-left">
+    				<button class="btn btn-info w-50">Feedback</button>
+    			</div>
     			<div class="col"><h2>ALIF Verbs</h2></div>
-    			<div class="col">Profile</div>
+    			<div class="col text-right"><button class="btn btn-secondary" onclick="go2profile()">Profile <img src="img/user.png" id="profile_btn_img" class="user_avatar" height="25px"/></button> </div>
     		</div>
     	<div class="row">
-    		<div class="col">Help</div>
+    		<div class="col text-left">
+				<button class="btn btn-success w-50">Help</button>
+    		</div>
     		<div class="col">
     			<span id="lang_name" class="small" hidden>Egyptian Arabic</span>
     			<img id="lang_flag" src="img/egypt.svg" height="25px" hidden/>
@@ -1293,8 +1372,19 @@ function deploy_question(){
     	</div>
    		<div id="profile_div" class="screen">
 	      <h5>Profile</h5>
-	      <p>Choose a username</p>
-	      <p>Choose avatar</p>
+
+	      
+	      <div class="row">
+	      	<div class="col text-right">Choose a username</div>
+	      	<div class="col text-left"><input type="text" name="username" id="profile_username"/></div>
+	      </div>
+	      	
+	      <h5>Choose avatar</h5>
+	      <img id="selected_avatar" src="img/user.png" height="40px"/>
+	      <p>Available Avatars</p>
+	      <div id="avatar_space"></div>
+	      <p><button class="btn btn-primary btn-block" onclick="go2menu()">Main Menu</button></p>
+
     	</div>   
 
    		<div id="settings_div" class="screen">
@@ -1350,6 +1440,63 @@ function deploy_question(){
   </div> 
   <!-- Modal End -->
 
+  <!-- Login/Signup Modal -->
+  <div class="modal" id="login_modal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+      
+        <!-- Modal Header -->
+        <div class="modal-header">
+
+          <h4 class="modal-title">Login/Signup</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        
+        <!-- Modal body -->
+        <div class="modal-body">
+        	
+
+			 <!-- <div id="my-signin2"></div> -->
+			 <div class="g-signin2 m-1" data-onsuccess="onSignIn" data-theme="dark" data-width="300" data-height="40"></div>
+			 <div class="row">
+			 	<div class="col"></div>
+			 	<div class="col">
+			 		<div class="fb-login-button m-1" data-width="300" data-size="large" data-button-type="continue_with" data-layout="default" data-auto-logout-link="false" data-use-continue-as="false"></div>
+			 	</div>
+			 	<div class="col"></div>
+
+			 </div>
+			 <hr>
+			OR email login
+
+	      <div class="row m-1">
+	      	<div class="col text-left"></div>
+	      	<div class="col text-left">
+	      		<input type="text" name="email" id="login_email" class="m-1" placeholder="Email" /><br>
+	      		
+	      	</div>
+	      	<div class="col"></div>
+	      </div>
+	      <button class="btn btn-primary w-75 m-1" onclick="login_success()"> Submit Email</button>
+<!-- 	      <button class="btn btn-primary btn-block"> Continue as Guest</button> -->
+	      	
+
+
+
+
+        </div>
+        
+        <!-- Modal footer -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger btn-block" data-dismiss="modal">OR Continue as Guest</button>
+        </div>
+        
+      </div>
+    </div>
+  </div> 
+  <!-- Modal End -->
+
+
 
     </div>
     <div class="col-sm-2" id="ad_space">
@@ -1376,6 +1523,48 @@ function deploy_question(){
 
 </div>
 
+<div id="dialog" title="success">
+  <p>Login Successful</p>
+</div>
+
+
+    <script>
+      function onSignIn(googleUser) {
+        // Useful data for your client-side scripts:
+        var profile = googleUser.getBasicProfile();
+        console.log("ID: " + profile.getId()); // Don't send this directly to your server!
+        console.log('Full Name: ' + profile.getName());
+        console.log('Given Name: ' + profile.getGivenName());
+        console.log('Family Name: ' + profile.getFamilyName());
+        console.log("Image URL: " + profile.getImageUrl());
+        console.log("Email: " + profile.getEmail());
+
+        // The ID token you need to pass to your backend:
+        var id_token = googleUser.getAuthResponse().id_token;
+        console.log("ID Token: " + id_token);
+      }
+    </script>
+      <script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script>
+      <script type="text/javascript">
+      	    function onSuccess(googleUser) {
+      console.log('Logged in as: ' + googleUser.getBasicProfile().getName());
+    }
+    function onFailure(error) {
+      console.log(error);
+    }
+
+      	function renderButton() {
+      gapi.signin2.render('my-signin2', {
+        'scope': 'profile email',
+        'width': 240,
+        'height': 40,
+        'longtitle': true,
+        'theme': 'dark',
+        'onsuccess': onSuccess,
+        'onfailure': onFailure
+      });
+    }
+      </script>
 
 </body>
 </html>
