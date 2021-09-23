@@ -20,8 +20,51 @@ function getRandomInt(max) {
   return Math.floor(Math.random() * max);
 }
 
+
+//utility functions, python style
 function len(list1){
     return list1.length
+}
+
+function is_in(small,big){
+    if (big.indexOf(small)>-1) return true
+    else return false
+}
+
+function int(str_digits) {
+    return parseInt(str_digits)
+} 
+function float(str_digits) {
+    return parseFloat(str_digits)
+} 
+
+function str(myVar) {
+    if (typeof myVar === 'string' || myVar instanceof String) return myVar
+    return JSON.stringify(myVar)
+} 
+function make_str_array(array0) { // convert ["a",1,3,5] into ["a","1","3","5"] 
+    new_array_of_strings=[]
+    for (ar0 of array0) new_array_of_strings.push(str(ar0))
+    return new_array_of_strings
+} 
+
+
+function get_percent(ratio){
+    cur_int_percent=Math.round(100*ratio)
+    return ""+cur_int_percent+"%"
+}
+
+function create_hyperlink(link_name,link_fn){
+    // cur_link=document.createElement("a")
+    // cur_link.href="javascript:void(0)"
+    // cur_link.name=link_name
+    // cur_link.onclick=link_fn //show_conj_modal
+    // cur_link.innerHTML=link_name
+
+    cur_link='<a href="javascript:void(0)" name="_name_" onclick="_function_(this)">'+link_name+"</a>"
+    cur_link=cur_link.replace("_name_",link_name)    
+    cur_link=cur_link.replace("_function_",link_fn)    
+    return cur_link
 }
 
 function load_images(img_list,callback_fn=null){ //loading a group of images, adding them to images variable/namespace
@@ -435,6 +478,37 @@ function get_vals(class_name){ //get the vals from inputs of a form
     return val_dict
 }
 
+function apply_form_vals(val_dict,form_class_name){
+    elements=document.getElementsByClassName(form_class_name)
+    used_names=[] //to address radio buttons, where inputs have the same names
+    for (el in elements){
+        cur_el=elements[el]
+        el_name=cur_el.name
+        dict_val=val_dict[el_name]
+        console.log(dict_val,el_name)
+        if (dict_val==null || dict_val==undefined) continue 
+        
+        // el_value=cur_el.value
+        if (el_name==null || el_name==undefined) continue
+        //if (el_value==null || el_value==undefined) continue
+        if (used_names.indexOf(el_name)>-1) continue
+        
+        if (cur_el.type=="radio"){
+            used_names.push(el_name)
+            var radios = document.getElementsByName(el_name);
+            for (rd in radios){
+                //check if the radio button is of the same class
+                cur_rd=radios[rd]
+                //if (cur_rd.checked) val_dict[el_name]=cur_rd.value
+                if (val_dict[el_name]=cur_rd.value) cur_rd.checked=true   
+            }
+        }
+        else if (cur_el.type=="checkbox") cur_el.checked=val_dict[el_name]
+        else cur_el.value=dict_val //val_dict[el_name]=el_value
+    }
+    return val_dict    
+}
+
 function listToMatrix(list, elementsPerSubArray) {
     var matrix = [], i, k;
 
@@ -521,6 +595,7 @@ function pause_timer(){
 
 
 function sort_array(array0,element_i,ascending=true){
+    if (element_i<0) element_i=len(array0[0])+element_i //to account for situations with negative index e.g. last element -1
     array_copy=copy_obj(array0)
     array_copy = array_copy.sort(function(a,b) {
         if (ascending) return a[element_i] - b[element_i];

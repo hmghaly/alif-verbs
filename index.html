@@ -142,7 +142,7 @@ negative_emojis=["img/face-screaming-in-fear_1f631.png","img/face-with-hand-over
 	
 var settings=get_local_strorage(app_name,"settings")
 if (settings==null || settings==undefined) settings={}
-if (settings.quiz_time==null || settings.quiz_time==undefined) settings.quiz_time=initial_quiz_time
+//if (settings.quiz_time==null || settings.quiz_time==undefined) settings.quiz_time=initial_quiz_time
 
 var cur_address=window.location.pathname //"/dev/alif-verbs/"
 
@@ -179,6 +179,10 @@ var cur_address=window.location.pathname //"/dev/alif-verbs/"
 // 	clearInterval(timer.starter)
 // }
 
+function ui_alert(msg_txt){
+
+}
+
 function game_ended(){
 	console.log("game_ended")
 	show_screen("after_game_div")
@@ -192,9 +196,11 @@ function game_ended(){
 
 	table_array=[]
 	table_array.push(headers)
+	tmp_array=[]
 	for (verb_id of Object.keys(accuracy[arabic_var].current.verb_id)){
-		conj_link='<a href="javascript:void(0)" name="_name_" onclick="show_conj_modal(this)"><b>'+verb_id+"</b></a>"
-		conj_link=conj_link.replace("_name_",verb_id)
+		// conj_link='<a href="javascript:void(0)" name="_name_" onclick="show_conj_modal(this)"><b>'+verb_id+"</b></a>"
+		// conj_link=conj_link.replace("_name_",verb_id)
+		conj_link=create_hyperlink(verb_id,"show_conj_modal")
 
 		cur_row_items=[conj_link]
 		tmp_dict={}
@@ -205,13 +211,22 @@ function game_ended(){
 			console.log(cur_val)
 			// cur_val=accuracy[arabic_var].current.verb[verb_item][k0]
 			// if (cur_val==null) cur_val=0
-			cur_row_items.push(""+cur_val)
+			cur_row_items.push(cur_val)
+			//cur_row_items.push(""+cur_val)
 		}
-		cur_accuracy_percent=Math.round(100*tmp_dict["correct"]/tmp_dict["total"])
-		cur_row_items.push(""+cur_accuracy_percent+"%")
-		table_array.push(cur_row_items)
+		cur_accuracy=tmp_dict["correct"]/tmp_dict["total"]
+		cur_row_items.push(cur_accuracy)
+		// cur_accuracy_percent=Math.round(100*tmp_dict["correct"]/tmp_dict["total"])
+		// cur_row_items.push(""+cur_accuracy_percent+"%")
+		tmp_array.push(cur_row_items)
 
 	}
+	tmp_array=sort_array(tmp_array,-1)
+	for (t_item of tmp_array){
+		t_item[len(t_item)-1]=get_percent(t_item[len(t_item)-1])
+		table_array.push(make_str_array(t_item))
+	}
+	console.log(tmp_array)
 	fill_table("analysis_table",table_array)
 	//accuracy.current.verb
 
@@ -556,6 +571,7 @@ function prepare_questions(cur_verb_ids){
 function init(){
 	console.log("Hello")
 	//$$("main_div").setAttribute("style","height:50px");
+	load_settings()
 	//fname="txt/verbs-eg-data.json" //this should go after selecting which Arabic
 	fname="txt/verbs-eg_ar-data.json"
 	read_file(fname,function(obj1){
@@ -942,7 +958,7 @@ function start_quiz(){
 	// overall_accuracy=JSON.parse(JSON.stringify(get_dict(accuracy,[arabic_var,"overall"],{})))
 	// console.log(overall_accuracy)
 
-	timer.remianing_time=settings.quiz_time //to be set by the settings $$("timer_div")
+	timer.remianing_time=int(settings.quiz_time_minutes)*60 //to be set by the settings $$("timer_div")
 	start_timer("timer_div",game_ended)
 	show_hints()
 	deploy_question()
@@ -1145,8 +1161,32 @@ function go2profile(){
 
 }
 
+function go2settings(){
+	show_screen("settings_div")
+}
+
+function update_settings(){
+	settings=get_vals("settings_form")
+	set_local_strorage(app_name,"settings",settings)
+	console.log(settings)
+	test=get_local_strorage(app_name,"settings")
+	console.log(test)
+	alert("Settings updated successfully")
+	go2menu()
+}
+
+
+function update_profile(){
+	console.log("updating profile")
+} 
+function load_settings(){
+	apply_form_vals(settings,"settings_form")
+
+}
+
 function login_success(){
 	go2menu()
+	$$("dialog").hidden=false
 	$( "#dialog" ).dialog();
 	$('.modal').modal('hide');
 
@@ -1154,11 +1194,11 @@ function login_success(){
 
 
 
-function checkLoginState() {
-  FB.getLoginStatus(function(response) {
-    statusChangeCallback(response);
-  });
-}
+// function checkLoginState() {
+//   FB.getLoginStatus(function(response) {
+//     statusChangeCallback(response);
+//   });
+// }
 
 
 </script>
@@ -1225,14 +1265,17 @@ function checkLoginState() {
     	<div id="main_menu" class="screen" style="background-color:lavender;height: 500px"> 
     		<div class="row">
     			<div class="col text-left">
-    				<button class="btn btn-info w-50">Feedback</button>
+    				 <button class="btn btn-info m-1 w-75" id="feedback_btn">&nbsp;<img src="img/incoming-envelope_1f4e8.png" height="25px" /> <br>Contact </button>
     			</div>
     			<div class="col"><h2>ALIF Verbs</h2></div>
-    			<div class="col text-right"><button class="btn btn-secondary" onclick="go2profile()">Profile <img src="img/user.png" id="profile_btn_img" class="user_avatar" height="25px"/></button> </div>
+    			<div class="col text-right"><button class="btn btn-secondary m-1 w-75" onclick="go2profile()"> <img src="img/user.png" id="profile_btn_img" class="user_avatar" height="25px"/><br>Profile </button> </div>
     		</div>
     	<div class="row">
     		<div class="col text-left">
-				<button class="btn btn-success w-50">Help</button>
+<!--     			<div id="help_btn">&nbsp;<img src="img/float.png" height="30px" /><br> Help</div> -->
+    			<button class="btn btn-success m-1 w-75" id="help_btn">&nbsp;<img src="img/float.png" height="25px" /> <br>Help </button>
+
+				
     		</div>
     		<div class="col">
     			<span id="lang_name" class="small" hidden>Egyptian Arabic</span>
@@ -1276,7 +1319,7 @@ function checkLoginState() {
 <!-- 	      <div id="bottom-menu-nav" class="row justify-content-center align-self-center" style="height: 40px"> -->
 <!-- 	      <div id="bottom-menu-nav" style="position: absolute;height: 40px;width:100%;bottom: 40px">  -->
 	      	    <div id="bottom_nav" class="flex" style="position: absolute;heigh:50px;width:100%;top: 440px">
-			        <div style="width:100%">
+			        <div style="width:100%" onclick="go2settings()">
 						<img src="img/gear.png" height="30px"><br>
 						<small>Settings</small>
 			        </div>
@@ -1368,6 +1411,13 @@ function checkLoginState() {
 	      <p><img src="img/check.png" height="20px" /> Correct: <span id="after_game_correct_total"></span></p> 
 	      <h3 id="accuracy_analysis">Accuracy Analysis</h3>
 	      <table id="analysis_table" class="table table-striped"></table>
+	      <div id="social_media_follow" class="text-center">
+	      	<h5>Follow us:</h5>
+	      	<div class="fb-like" data-href="https://facebook.com/archampolu" data-width="100" data-layout="button" data-action="like" data-size="small" data-share="true"></div>
+			<script src="https://apis.google.com/js/platform.js"></script> <div class="g-ytsubscribe" data-channelid="UCFxqaKvMQKOlsZ6WsFmEJOg" data-layout="default" data-count="default"></div>	
+	      </div>
+	                      
+
 	      <p><button class="btn btn-primary btn-block" onclick="go2menu()">Main Menu</button></p>
     	</div>
    		<div id="profile_div" class="screen">
@@ -1383,14 +1433,59 @@ function checkLoginState() {
 	      <img id="selected_avatar" src="img/user.png" height="40px"/>
 	      <p>Available Avatars</p>
 	      <div id="avatar_space"></div>
-	      <p><button class="btn btn-primary btn-block" onclick="go2menu()">Main Menu</button></p>
+	      <button class="btn btn-primary w-75 m-1" onclick="update_profile()">Update Profile</button>
+	      <button class="btn btn-danger w-75 m-1" onclick="go2menu()">Discard Changes</button>	      
 
     	</div>   
 
    		<div id="settings_div" class="screen">
 	      <h5>Settings</h5>
-	      <p>Audio settings</p>
-	      <p>Layout settings</p>
+		<div class="form-group">
+			  <label for="quiz_time_minutes">Quiz time (minutes)</label>
+			  <select class="form-control settings_form" name="quiz_time_minutes" id="quiz_time_minutes">
+			    <option value="1">1</option>
+			    <option value="2">2</option>
+			    <option value="3">3</option>
+			    <option value="4">4</option>
+			    <option value="5" selected>5</option>
+			  </select>
+			</div>	      
+
+		<div class="form-group">
+			  <label for="daily_goal_minutes">Daily goal (minutes)</label>
+			  <select class="form-control settings_form" name="daily_goal_minutes" id="daily_goal_minutes">
+			    <option value="5">5</option>
+			    <option value="10" selected>10</option>
+			    <option value="15">15</option>
+			    <option value="20">20</option>
+			    <option value="25">25</option>
+			    <option value="30">30</option>
+			  </select>
+			</div>	
+
+		<div class="form-group">
+			  <label for="quiz_script">Script:</label>
+			  <select class="form-control settings_form" name="quiz_script" id="quiz_script" disabled>
+			    <option value="ar_rom" selected>Arabic Script + Romanization (kalimah كلمة)</option>
+			    <option value="rom_only">Romanization Only (kalimah)</option>
+			    <option value="ar_only">Arabic Script Only (كلمة)</option>
+			  </select>
+			</div>
+
+
+	        <label class="form-check-label">
+		    <input type="checkbox" class="form-check-input settings_form" name="play_audio" checked disabled>Play audio after quiz
+		  </label><br>
+
+<!-- 	      <p>Play music effects</p> --> 
+
+	
+
+
+
+	      <button class="btn btn-primary w-75 m-1" onclick="update_settings()">Update Settings</button>
+	      <button class="btn btn-danger w-75 m-1" onclick="go2menu()">Discard Changes</button>
+
     	</div>  
 
    		<div id="login_signup_div" class="screen">
@@ -1461,11 +1556,19 @@ function checkLoginState() {
 			 <div class="row">
 			 	<div class="col"></div>
 			 	<div class="col">
-			 		<div class="fb-login-button m-1" data-width="300" data-size="large" data-button-type="continue_with" data-layout="default" data-auto-logout-link="false" data-use-continue-as="false"></div>
+			 <fb:login-button scope="public_profile,email" onlogin="checkLoginState();" autologoutlink="true" size="large"> Continue with Facebook
+			</fb:login-button>
+
+<!-- 			 		<div class="fb-login-button m-1" data-width="300" data-size="large" data-button-type="continue_with" data-layout="default" data-auto-logout-link="false" data-use-continue-as="false"></div>
+ -->			 		
 			 	</div>
 			 	<div class="col"></div>
 
 			 </div>
+
+<!-- 			<div class="fb-login-button" data-width="" data-size="large" data-button-type="login_with" data-layout="default" data-auto-logout-link="true" data-use-continue-as="false"></div> -->
+
+
 			 <hr>
 			OR email login
 
@@ -1523,15 +1626,18 @@ function checkLoginState() {
 
 </div>
 
-<div id="dialog" title="success">
-  <p>Login Successful</p>
+<div id="dialog" title="Message" hidden>
+  <p id="dialogue_message">Login Successful</p>
 </div>
 
 
     <script>
+    	//Google amd Facebook functions - login/logout
       function onSignIn(googleUser) {
         // Useful data for your client-side scripts:
+        console.log(googleUser)
         var profile = googleUser.getBasicProfile();
+        console.log(profile)
         console.log("ID: " + profile.getId()); // Don't send this directly to your server!
         console.log('Full Name: ' + profile.getName());
         console.log('Given Name: ' + profile.getGivenName());
@@ -1544,7 +1650,7 @@ function checkLoginState() {
         console.log("ID Token: " + id_token);
       }
     </script>
-      <script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script>
+<!--       <script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script> -->
       <script type="text/javascript">
       	    function onSuccess(googleUser) {
       console.log('Logged in as: ' + googleUser.getBasicProfile().getName());
@@ -1564,6 +1670,77 @@ function checkLoginState() {
         'onfailure': onFailure
       });
     }
+
+	function checkLoginState() {
+	    FB.getLoginStatus(function(response) {
+	      statusChangeCallback(response);
+	    });
+	  }
+
+function statusChangeCallback(response) {
+    // body...
+    if(response.status === 'connected'){
+      // setElements(true);
+      let userId = response.authResponse.userID;
+      // console.log(userId);
+      console.log('login');
+      getUserInfo(userId);
+
+    }
+    else{
+      // setElements(false);
+      console.log('not logged in !');
+    }
+  }
+
+  function getUserInfo(userId) {
+    // body...
+    FB.api(
+      '/'+userId+'/?fields=id,name,email',
+      'GET',
+      {},
+      function(response) {
+        // Insert your code here
+        console.log(response);
+        let email = response.email;
+        //loginViaEmail(email);
+      }
+    );
+  }
+  function fb_logout(){
+	  FB.api('/me/permissions', 'delete', function(response) {
+	    console.log(response.status); // true for successful logout.
+	});  	
+  }
+
+
+function google_logout() {
+    gapi.auth2.getAuthInstance().signOut().then(function () {
+      console.log('User signed out.');
+      location.reload();
+    });
+
+}
+
+  
+	  
+
+  //   function getUserInfo() {
+  //   // body...
+  //   userId=FB.getUserID()
+  //   FB.api(
+  //     '/'+userId+'/?fields=id,name,email',
+  //     'GET',
+  //     {},
+  //     function(response) {
+  //       // Insert your code here
+  //       console.log(response);
+  //       let email = response.email;
+  //       //loginViaEmail(email);
+  //     }
+  //   );
+  // }
+
       </script>
 
 </body>
