@@ -56,7 +56,7 @@
   margin-left: -12px;
   margin-right: 8px;
 }
-.nav {
+/*.nav {
     position:absolute;
     bottom:0;
     right:10%;
@@ -64,7 +64,7 @@
 .sub_div {
     position: absolute;
     bottom: 0px;
-}
+}*/
 
 .flex {
     display: flex;
@@ -142,44 +142,49 @@ negative_emojis=["img/face-screaming-in-fear_1f631.png","img/face-with-hand-over
 	
 var settings=get_local_strorage(app_name,"settings")
 if (settings==null || settings==undefined) settings={}
+
+var progress_history=get_local_strorage(app_name,"progress_history")
+if (progress_history==null || progress_history==undefined) progress_history=[]
 //if (settings.quiz_time==null || settings.quiz_time==undefined) settings.quiz_time=initial_quiz_time
 
 var cur_address=window.location.pathname //"/dev/alif-verbs/"
 
 
-// function seconds2str(seconds){
-//     n_seconds=seconds%60
-//     n_minutes=(seconds-n_seconds)/60
-//     n_minutes_str=""+n_minutes
-//     n_seconds_str=""+n_seconds
-//     if (n_seconds_str.length==1) n_seconds_str="0"+n_seconds_str
-//     timer_str=n_minutes_str+":"+n_seconds_str	
-// 	return timer_str
-// }
-
-// function start_timer(timer_id,callback_fn,interval=1000){ //
-// 	timer_str=seconds2str(timer.remianing_time)
-// 	$$(timer_id).innerHTML=timer_str
-// 	timer.starter = setInterval(function(){
-// 		console.log(timer.remianing_time)
-// 		timer.remianing_time-=interval/1000
-// 		console.log(timer.remianing_time)
-// 		timer_str=seconds2str(timer.remianing_time)
-// 		$$(timer_id).innerHTML=timer_str
-// 		if (timer.remianing_time<=0) {
-// 			callback_fn()
-// 			clearInterval(timer.starter)
-// 		} 
-// 	}, interval);
-
-// 	//console.log(timer_str)
-// }
-
-// function pause_timer(){
-// 	clearInterval(timer.starter)
-// }
 
 function ui_alert(msg_txt){
+
+}
+
+function deploy_analysis_table(analysis_item_name0,analysis_obj0,analysis_table_id0,is_hyperlinked=false){
+	headers=[analysis_item_name0,'correct <img src="img/check.png" height="20px" />','incorrect <img src="img/wrong.png" height="20px" />',"total",'Accuracy <img src="img/target.png" height="20px" />']
+	table_array=[]
+	table_array.push(headers)
+	tmp_array=[]
+
+	//analysis_obj0=accuracy[arabic_var]["overall"]["verb_id"]
+	for (key0 of Object.keys(analysis_obj0)){
+		if (is_hyperlinked) first_row_item=create_hyperlink(key0,"show_conj_modal")
+		else first_row_item=create_hyperlink(key0,"show_conj_modal")
+		cur_row_items=[first_row_item]
+		tmp_dict={}
+		for (cit of ["correct","incorrect","total"]){
+			cur_val=get_dict(analysis_obj0,[key0,cit],0)
+			if (cur_val==null || cur_val==undefined) cur_val=0
+			tmp_dict[cit]=cur_val
+			console.log(cur_val)
+			cur_row_items.push(cur_val)
+		}
+		cur_accuracy=tmp_dict["correct"]/tmp_dict["total"]
+		cur_row_items.push(cur_accuracy)
+		tmp_array.push(cur_row_items)
+	}
+	tmp_array=sort_array(tmp_array,-1)
+	for (t_item of tmp_array){
+		t_item[len(t_item)-1]=get_percent(t_item[len(t_item)-1])
+		table_array.push(make_str_array(t_item))
+	}
+	console.log(tmp_array)
+	fill_table(analysis_table_id0,table_array)
 
 }
 
@@ -191,6 +196,23 @@ function game_ended(){
 	$$("after_game_accuracy").innerHTML=""+Math.round(results.accuracy*100)+"%"
 	correct_total_str=""+results.n_answered+ " / "+results.n_attempted
 	$$("after_game_correct_total").innerHTML=correct_total_str
+
+	tmp_progress_obj={}
+	tmp_progress_obj["results"]=results
+	tmp_progress_obj["accuracy_stat"]=accuracy[arabic_var].current
+	tmp_progress_obj["correct"]=results.n_answered
+	tmp_progress_obj["total"]=results.n_attempted
+	tmp_progress_obj["accuracy"]=results.accuracy
+	tmp_progress_obj["score"]=results.score
+	tmp_progress_obj["duration"]=settings.quiz_time_minutes
+	tmp_progress_obj["date"]=today()
+	progress_history.push(tmp_progress_obj)
+	set_local_strorage(app_name,"progress_history",progress_history)
+
+
+
+
+
 	//keys=["correct","incorrect","total"]
 	headers=["Verb",'correct <img src="img/check.png" height="20px" />','incorrect <img src="img/wrong.png" height="20px" />',"total",'Accuracy <img src="img/target.png" height="20px" />']
 
@@ -379,6 +401,13 @@ function prepare_tutorial(){
 	}
 }
 
+// function combine_ar_rom(rom0,ar0){
+// 	if (settings.quiz_script=="ar_rom") return rom0+" "+ar0
+// 	else if (settings.quiz_script=="ar_only") return ar0	
+// 	else if (settings.quiz_script=="rom_only") return rom0
+// 	else return rom0+" "+ar0		
+// }
+
 function prepare_questions(cur_verb_ids){
 	tmp_question_list=[] //the final list of questions generated
 	q_list=[] //list of raw question objects: English equivalent, Arabic form, and other meta info
@@ -468,6 +497,7 @@ function prepare_questions(cur_verb_ids){
 
 		if (cur_q_obj.type=="recognition" || cur_q_obj.type=="conjugation_recognition" || cur_q_obj.type=="mix_recognition"){
 			cur_q_obj.prompt="Which verb is this?"
+
 			item_label=tmp_item0.ar_form[0]+" "+tmp_item0.ar_form[1]
 			cur_q_obj.item=item_label
 			
@@ -806,6 +836,7 @@ function next_q(){
 
 
 function is_correct(trg1){ //if the answer is correct
+	$(".quiz-option").attr("disabled","disabled");
 	$$("quiz_audio").play() //play the audio of the quiz
 	$$("quiz_answer").innerHTML=trg1.innerHTML //display the quiz answer
 	//change the mood image to success emoji
@@ -849,6 +880,8 @@ function is_correct(trg1){ //if the answer is correct
 
 	trg1.classList.remove("quiz-option")
 	trg1.classList.add("correct")
+	
+
 	// $(".quiz-option").on('click', function(event){ //remove event listener onclick from the incorrect options
 	//     event.stopPropagation();
 	//     event.stopImmediatePropagation();
@@ -1087,7 +1120,7 @@ function show_conj_modal(obj1){
 	
 }
 
-function comine_en_ar(item){
+function combine_en_ar(item){
 	if (item==null) return ""
 	return item[0]+"<br>"+item[1]
 }
@@ -1100,11 +1133,11 @@ function deploy_pre_game(){
 	for (v_id of quiz.cur_ids){
 		v_obj=verb_dict[v_id]
 		english=v_obj.english.base
-		ar_base_he=comine_en_ar(v_obj.basic["base_he"]) 
-		ar_past_i=comine_en_ar(v_obj.basic["past_i"])
-		ar_past_he=comine_en_ar(v_obj.basic["past_he"])
-		ar_imperative=comine_en_ar(v_obj.basic["imperative"])
-		ar_active=comine_en_ar(v_obj.basic["active"])
+		ar_base_he=combine_en_ar(v_obj.basic["base_he"]) 
+		ar_past_i=combine_en_ar(v_obj.basic["past_i"])
+		ar_past_he=combine_en_ar(v_obj.basic["past_he"])
+		ar_imperative=combine_en_ar(v_obj.basic["imperative"])
+		ar_active=combine_en_ar(v_obj.basic["active"])
 		conj_link='<a href="javascript:void(0)" name="_name_" onclick="show_conj_modal(this)"><b>'+ar_base_he+"</b></a>"
 		conj_link=conj_link.replace("_name_",v_id)
 		cur_row=["<mark>"+english+"</mark>",conj_link,ar_past_i,ar_past_he,ar_imperative,ar_active]
@@ -1123,7 +1156,7 @@ function deploy_question(){
 	cur_item=cur_question.item
 	cur_item=repl_with_emoji(cur_item)
 	$$("quiz_item").innerHTML=cur_item
-	$$("quiz_answer").innerHTML=""
+	$$("quiz_answer").innerHTML="&nbsp;"
 
 	//audio_src="../../audio/eg-verbs-mini/"+cur_question.audio+".mp3"
 	audio_src=audio_prefix+cur_question.audio+".mp3"
@@ -1135,9 +1168,14 @@ function deploy_question(){
 
 	tags_div=$$("quiz_tags")
 	tags_div.innerHTML=""
-	cur_tag_el=create_el_basic("span",tags_div)
-	cur_tag_el.className="badge badge-info"
-	cur_tag_el.innerHTML=cur_question.tense
+	cur_tag_el_tense=create_el_basic("span",tags_div)
+	cur_tag_el_tense.className="badge badge-info"
+	cur_tag_el_tense.innerHTML=cur_question.tense
+	
+	cur_tag_el_type=create_el_basic("span",tags_div)
+	cur_tag_el_type.className="badge badge-warning"
+	cur_tag_el_type.innerHTML=cur_question.type
+
 	// '<span class="badge badge-info">Info</span>'
 	options_div=$$("quiz_options")
 	options_div.innerHTML=""
@@ -1163,6 +1201,48 @@ function go2profile(){
 
 function go2settings(){
 	show_screen("settings_div")
+}
+
+function go2progress(){
+	show_screen("progress_div")
+	tmp_overall_analysis_obj=accuracy[arabic_var]["overall"]
+	deploy_analysis_table("Verb",tmp_overall_analysis_obj["verb_id"],"progress_verb_analysis_table",is_hyperlinked=true)
+	deploy_analysis_table("Tense",tmp_overall_analysis_obj["tense"],"progress_tense_analysis_table",is_hyperlinked=false)
+	deploy_analysis_table("Pronoun",tmp_overall_analysis_obj["pronoun"],"progress_pronoun_analysis_table",is_hyperlinked=false)
+	deploy_analysis_table("Question",tmp_overall_analysis_obj["type"],"progress_question_analysis_table",is_hyperlinked=false)
+	tmp_overall_analysis_obj_all=tmp_overall_analysis_obj.all
+	cur_correct=0
+	cur_total=0
+	if (tmp_overall_analysis_obj_all==null || tmp_overall_analysis_obj_all==undefined) cur_accuracy_ratio=0
+	else {
+		cur_total=tmp_overall_analysis_obj_all.total
+		cur_correct=tmp_overall_analysis_obj_all.correct
+		if (cur_total==null || cur_total==undefined) cur_accuracy_ratio=0
+		else {
+			if (cur_correct==null || cur_correct==undefined) cur_correct=0
+			cur_accuracy_ratio=cur_correct/cur_total
+		}		
+	}
+
+	$$("progress_accuracy_value").innerHTML=get_percent(cur_accuracy_ratio)
+	$$("progress_correct_total_value").innerHTML="(correct: "+cur_correct+"/"+cur_total+")"
+	deploy_sessions_table()
+
+	//progress_accuracy_value
+	
+}
+
+function deploy_sessions_table(){
+//progress_sessions_table
+	table_items=[]
+	headers=["date","accuracy","correct","score"]	
+	table_items.push(headers)
+	for (prog_item of progress_history){
+		correct_str=""+prog_item.correct+"/"+prog_item.total
+		row_items=[prog_item.date,get_percent(prog_item.accuracy),correct_str,str(prog_item.score)]
+		table_items.push(row_items)
+	}
+	fill_table("progress_sessions_table",table_items)
 }
 
 function update_settings(){
@@ -1323,7 +1403,7 @@ function login_success(){
 						<img src="img/gear.png" height="30px"><br>
 						<small>Settings</small>
 			        </div>
-			        <div style="width:100%">
+			        <div style="width:100%" onclick="go2progress()"> 
 						<img src="img/rocket.png" height="30px"><br>
 						<small>Progress</small>
 			        </div>
@@ -1359,9 +1439,71 @@ function login_success(){
     	</div>
    		<div id="progress_div" class="screen">
 	      <h5>My Progress</h5>
-	      <p>Sessions - Accuracy</p>
+<!-- 	      <p class="nav">
+	      	Hello
+	      </p> -->
+<ul class="nav nav-tabs">
+  <li class="nav-item">
+    <a class="nav-link active" data-toggle="tab" href="#progress_accuracy">Accuracy</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-toggle="tab" href="#progress_sessions">Sessions</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-toggle="tab" href="#progress_badges">Badges</a>
+  </li>
+</ul>
+
+<!-- Tab panes -->
+<div class="tab-content">
+  <div class="tab-pane container active" id="progress_accuracy">
+  	<div>Overall Accuracy: <h4 id="progress_accuracy_value">75%</h4> <h5 id="progress_correct_total_value">7/10</h5></div>
+  	<p>Check your performance for different verbs, tenses, pronouns, and question types</p>
+	<ul class="nav nav-tabs">
+	  <li class="nav-item">
+	    <a class="nav-link active" data-toggle="tab" href="#progress_accuracy_verbs">Verbs</a>
+	  </li>
+	  <li class="nav-item">
+	    <a class="nav-link" data-toggle="tab" href="#progress_accuracy_tenses">Tenses</a>
+	  </li>
+	  <li class="nav-item">
+	    <a class="nav-link" data-toggle="tab" href="#progress_accuracy_pronouns">Pronouns</a>
+	  </li>
+	  <li class="nav-item">
+	    <a class="nav-link" data-toggle="tab" href="#progress_accuracy_question_types">Questions</a>
+	  </li>	  
+	</ul>
+
+	<div class="tab-content">
+		<div class="tab-pane container active" id="progress_accuracy_verbs">Verb Accuracy
+			<table id="progress_verb_analysis_table" class="table table-striped"></table>
+		</div>
+		<div class="tab-pane container fade" id="progress_accuracy_tenses">Tense Accuracy
+			<table id="progress_tense_analysis_table" class="table table-striped"></table>
+		</div>
+		<div class="tab-pane container fade" id="progress_accuracy_pronouns">Pronoun Accuracy
+			<table id="progress_pronoun_analysis_table" class="table table-striped"></table>
+		</div>
+		<div class="tab-pane container fade" id="progress_accuracy_question_types">Question Accuracy
+			<table id="progress_question_analysis_table" class="table table-striped"></table>
+		</div>
+	</div>
+
+
+
+
+
+  </div>
+  <div class="tab-pane container fade" id="progress_sessions">Your progress over sessions
+  	<table id="progress_sessions_table" class="table table-striped"></table>
+  </div>
+  <div class="tab-pane container fade" id="progress_badges">No badges yet</div>
+</div>
+
+<!-- 	      <p>Sessions - Accuracy</p>
 	      <p>Badges and Achievements</p>
-	      <p>My Mistakes</p>
+	      <p>My Mistakes</p> -->
+	      <button class="btn btn-primary w-75 m-1" onclick="go2menu()">Back to menu</button>
     	</div>
    		<div id="pre_game_div" class="screen">
 	      <h5>Starting the Quiz</h5>

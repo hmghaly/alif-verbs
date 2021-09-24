@@ -54,12 +54,14 @@ function get_percent(ratio){
     return ""+cur_int_percent+"%"
 }
 
+
 function create_hyperlink(link_name,link_fn){
     // cur_link=document.createElement("a")
     // cur_link.href="javascript:void(0)"
     // cur_link.name=link_name
     // cur_link.onclick=link_fn //show_conj_modal
     // cur_link.innerHTML=link_name
+    if (link_fn=="" || link_fn==null || link_fn==undefined) return link_name
 
     cur_link='<a href="javascript:void(0)" name="_name_" onclick="_function_(this)">'+link_name+"</a>"
     cur_link=cur_link.replace("_name_",link_name)    
