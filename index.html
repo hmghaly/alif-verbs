@@ -992,6 +992,7 @@ function start_quiz(){
 	// console.log(overall_accuracy)
 
 	timer.remianing_time=int(settings.quiz_time_minutes)*60 //to be set by the settings $$("timer_div")
+	if (settings.quiz_time_minutes==null || settings.quiz_time_minutes==undefined) timer.remianing_time=initial_quiz_time
 	start_timer("timer_div",game_ended)
 	show_hints()
 	deploy_question()
@@ -1457,7 +1458,7 @@ function login_success(){
 <!-- Tab panes -->
 <div class="tab-content">
   <div class="tab-pane container active" id="progress_accuracy">
-  	<div>Overall Accuracy: <h4 id="progress_accuracy_value">75%</h4> <h5 id="progress_correct_total_value">7/10</h5></div>
+  	<div>Overall Accuracy: <h4 id="progress_accuracy_value">100%</h4> <h5 id="progress_correct_total_value">0/0</h5></div>
   	<p>Check your performance for different verbs, tenses, pronouns, and question types</p>
 	<ul class="nav nav-tabs">
 	  <li class="nav-item">
