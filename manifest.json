@@ -1,0 +1,14 @@
+{
+  "name": "ALIF Verbs",
+  "short_name": "ALIF Verbs",
+"icons": [{
+    "src": "img/icons/lego.png",
+    "sizes": "512x512"
+  }],
+
+  "lang": "en-US",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "white",
+  "theme_color": "white"
+}

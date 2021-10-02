@@ -14,6 +14,10 @@
   <title>ALIF Verbs</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" 
+      type="image/png" 
+      href="img/icons/lego.png" />
+
 <meta name="description" content="Alif Verbs - learn Arabic Verb Conjugation. Learn the different tenses and forms for verbs. Learn verbs in Modern Standard Arbic, Egyptian Arabic, and other Arabic varieties. Learn steadily, 5 minutes a day, five new verbs every day!">
       <meta name="keywords" content="Arabic verbs forms conjugation alphabet letters reading writing listening games online web mobile androin ios fun app pronunciation diacritics tashkeel harakaat pronunciation">
 
@@ -31,6 +35,8 @@
   <link rel="stylesheet" href="css/font-awesome-4.7.0/css/font-awesome.min.css">
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+  <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
 
 
   <script src="js/script.js"></script>
@@ -87,7 +93,8 @@
 
 <script type="text/javascript">
 var arabic_var=null //"msa" //ega lva sya lba maa saa gla iqa kwa lya sda dza tna 
-arabic_var="eg_ar"
+//arabic_var="eg_ar"
+//arabic_var="msa"
 var cur_screen=null
 
 var user={}
@@ -100,15 +107,27 @@ var results={}
 var loading={} //check if loading is complete, together with animation
 var game_data={} //parsed json file generated externally - a list of verb objects
 var verb_id_list=[] //list of verb ids based on game data
-var verb_dict=[] //a dictionary of game data, where the key is the verb ID
+var verb_dict={} //a dictionary of game data, where the key is the verb ID
 var audio_scope;
 var initial_n_hints=20
 var initial_quiz_time=300
 var overall_accuracy={} //temporary copy of the accuraacy before the start of the quiz
 	
 
-var audio_prefix="../../audio/eg-verbs-mini/"
+//var audio_prefix="../../audio/eg-verbs-mini/"
 var audio_prefix="https://champolu.net/rec/projects/eg-verbs-100/user/"
+var lang_icon="img/arabic.svg"
+
+
+var lang_info={}
+lang_info["eg_ar"]={}
+lang_info["eg_ar"]["audio_prefix"]="https://champolu.net/rec/projects/eg-verbs-100/user/"
+lang_info["eg_ar"]["icon"]="img/egypt.svg"
+
+lang_info["msa"]={}
+lang_info["msa"]["audio_prefix"]="https://champolu.com/audio/msa_verbs50/"
+lang_info["msa"]["icon"]="img/arabic.svg"
+
 
 var app_name="alif-verbs"
 // nav_dict["arabic_var"]=null
@@ -260,6 +279,7 @@ function prepare_conjugation(verb_id){
 	tutorial_content.innerHTML=""
 		v_obj=verb_dict[verb_id]
 		conj_list=[]
+		console.log("verb_id",verb_id)
 		console.log(v_obj)
 		en_forms=v_obj["english"]
 		en_base=en_forms.base
@@ -418,6 +438,7 @@ function prepare_questions(cur_verb_ids){
 	for (const v_id of cur_verb_ids){
 		v_obj=verb_dict[v_id]
 		conj_list=[]
+		console.log("verb_id",v_id)
 		console.log(v_obj)
 		en_forms=v_obj["english"]
 		ar_forms=v_obj["forms"]
@@ -598,25 +619,41 @@ function prepare_questions(cur_verb_ids){
 	} //end of the iteration over the question objects
 	return tmp_question_list
 }
+
+$( document ).ready(function() {
+    console.log( "ready!" );
+    init()
+
+});
+
 function init(){
 	console.log("Hello")
 	//$$("main_div").setAttribute("style","height:50px");
 	load_settings()
+
+	gsap.fromTo("#continue2menu", {opacity: 0}, {opacity: 1, duration: 4});
+	arabic_var=nav_dict.arabic_var
+
+	//gsap.from("continue2menu", {scaleX:0.1, scaleY:0.1}).to("continue2menu", {duration: 4, scaleX:2, scaleY:2});
+
 	//fname="txt/verbs-eg-data.json" //this should go after selecting which Arabic
-	fname="txt/verbs-eg_ar-data.json"
-	read_file(fname,function(obj1){
-		//console.log(obj1)
-		game_data=obj1
-		// verb_id_list verb_dict
-		verb_id_list=[]
-		for (verb0 of game_data){
-			verb_id_list.push(verb0.id)
-			verb_dict[verb0.id]=verb0
-		}
-		loading.loaded_data=true
-		//prepare_questions()
-		go2menu()
-	})
+	// fname="txt/verbs-eg_ar-data.json"
+	// fname="txt/verbs-msa-data.json"
+	// fname="txt/verbs-"+arabic_var+"-data.json"
+	// read_file(fname,function(obj1){
+	// 	//console.log(obj1)
+	// 	game_data=obj1
+	// 	// verb_id_list verb_dict
+	// 	verb_id_list=[]
+	// 	for (verb0 of game_data){
+	// 		console.log(verb0)
+	// 		verb_id_list.push(verb0.id)
+	// 		verb_dict[verb0.id]=verb0
+	// 	}
+	// 	loading.loaded_data=true
+	// 	//prepare_questions()
+	// 	go2menu()
+	// })
 
 // 	FB.getLoginStatus(function(response) {
 //     statusChangeCallback(response);
@@ -657,11 +694,18 @@ function show_screen(screen_id){
 
 function go2menu(){
 	$(".screen").hide()
-	nav_dict.screen="arabic_selection_menu"
-	if (nav_dict.arabic_var!=null) nav_dict.screen="main_menu"
+	
+	if (nav_dict.arabic_var!=null) {
+		load_arabic()
+		nav_dict.screen="main_menu" //show_screen("main_menu")
+	} 
+	else {
+		nav_dict.screen="arabic_selection_menu"
+		show_screen(nav_dict.screen)
+	}
 	nav_dict["last_active"]=Date.now()
 	set_local_strorage(app_name,"nav_dict",nav_dict)
-	show_screen(nav_dict.screen)
+	
 }
 function increment(obj1){
 	if (obj1==null || obj1==undefined) obj1=0
@@ -678,53 +722,6 @@ function remove_listeners(el0){
 	old_element.parentNode.replaceChild(new_element, old_element);	
 }
 
-// function get_dict(dict_obj,nested_keys,default_val=null){
-// 	tmp=dict_obj
-// 	for (ki in nested_keys) {
-// 		k0=nested_keys[ki]
-// 		// console.log(k0)
-// 		check0=tmp[k0]
-// 		// console.log(check0)
-// 		if (check0==null || check0==undefined) {
-// 			if (ki==len(nested_keys)-1 && default_val!=null) tmp[k0]=default_val
-// 			else tmp[k0]={}
-// 		} 
-// 		tmp=tmp[k0]
-// 		// console.log(tmp)
-// 	}
-// 	// console.log(dict_obj)
-// 	return dict_obj
-// }
-
-// function increment_dict(dict_obj,nested_keys){
-// 	tmp=dict_obj
-// 	for (ki in nested_keys) {
-// 		k0=nested_keys[ki]
-// 		check0=tmp[k0]
-// 		if (check0==null || check0==undefined) {
-// 			if (ki==len(nested_keys)-1) {
-// 				if (tmp[k0]==null) tmp[k0]=0
-// 			} 
-// 			else tmp[k0]={}
-// 		}
-// 		if (ki==len(nested_keys)-1){
-// 			if (tmp[k0]==null) tmp[k0]=0
-// 			tmp[k0]+=1
-// 		}
-// 		tmp=tmp[k0]
-// 	}
-// 	return dict_obj	
-// }
-// var old_element = document.getElementById("btn");
-// var new_element = old_element.cloneNode(true);
-// old_element.parentNode.replaceChild(new_element, old_element);
-// function recursive_obj(initial_obj,subkeys,level=0){
-// 	if (level>=len(subkeys)) return initial_obj
-// 	cur_subkey=subkeys[level]
-// 	if (initial_obj[cur_subkey]==null || initial_obj[cur_subkey]==undefined) initial_obj[cur_subkey]={}
-// 	initial_obj[cur_subkey]=recursive_obj(initial_obj,subkeys,level+1)
-// 	return initial_obj
-// }
 
 function check_answer(evt){
 	cur_transition_emoji=shuffle(transition_emojis)[0]
@@ -744,43 +741,9 @@ function check_answer(evt){
 	}
 	console.log("total >>", accuracy[arabic_var]["current"]["all"])
 	set_local_strorage(app_name,"accuracy",accuracy)
-	// increment_dict(accuracy,[arabic_var, "current","all","total"])
-	// increment_dict(accuracy,[arabic_var, "overall","all","total"])
-	// for (metric of ["verb","tense","pronoun","type"]){
-	// 	increment_dict(accuracy,[arabic_var,"current",metric,cur_question[metric],"total"])
-	// 	increment_dict(accuracy,[arabic_var,"overall",metric,cur_question[metric],"total"])
-	// }
 	
-
-	
-
-	// accuracy.current.all=get_subobj(accuracy.current,"all")
-	// accuracy.current.verb=get_subobj(accuracy.current,"verb")
-	// accuracy.current.tense=get_subobj(accuracy.current,"tense")
-	// accuracy.current.pronoun=get_subobj(accuracy.current,"pronoun")
-	// accuracy.current.verb[cur_question.verb_id]=get_subobj(accuracy.current.verb,cur_question.verb_id)
-	// accuracy.current.tense[cur_question.tense]=get_subobj(accuracy.current.tense,cur_question.tense)
-	// accuracy.current.pronoun[cur_question.pronoun]=get_subobj(accuracy.current.pronoun,cur_question.pronoun)
-	// //console.log("check1", accuracy.current.all.total)
-	// accuracy.current.all.total=increment(accuracy.current.all.total)
-	// //console.log("check2", accuracy.current.all.total)
-	// accuracy.current.verb[cur_question.verb_id].total=increment(accuracy.current.verb[cur_question.verb_id].total)
-	// accuracy.current.tense[cur_question.tense].total=increment(accuracy.current.tense[cur_question.tense].total)
-	// accuracy.current.pronoun[cur_question.pronoun].total=increment(accuracy.current.pronoun[cur_question.pronoun].total)
-
 	results.n_attempted=increment(results.n_attempted)
-	// accuracy.current.tense.total=increment(accuracy.current.tense.total)
-	// accuracy.current.pronoun.total=increment(accuracy.current.pronoun.total)
 
-	// for (key0 of ["all","verb","tense","pronoun"]){
-	// 	if (accuracy.current[key0]==null || accuracy.current[key0]==undefined) accuracy.current[key0]={}
-	// 	if (accuracy.current[key0][cur_question.pronoun]==null || accuracy.current[key0][cur_question.pronoun]==undefined) accuracy.current[key0][cur_question.pronoun]={}
-	// 	if (accuracy.current[key0][cur_question.verb_id]==null || accuracy.current[key0][cur_question.pronoun]==undefined) accuracy.current[key0][cur_question.pronoun]={}	
-	// 	accuracy.current[key0][cur_question.pronoun].total=increment(accuracy.current[key0][cur_question.pronoun].total)
-
-	// }
-	// if (accuracy.current.total==null || accuracy.current.total==undefined) accuracy.current.total=0
-	// accuracy.current.total+=1
 
 	if (trg.name==answer.correct) is_correct(trg)
 	else is_wrong(trg)
@@ -949,9 +912,40 @@ function get_dist(obj1,obj2){
 // 	gsap.to("#main_menu", {duration: 1, x: 100});
 // }
 
+function load_arabic(){
+	$$("lang_loading_btn").hidden=false
+	lang_icon=lang_info[arabic_var]["icon"]
+	audio_prefix=lang_info[arabic_var]["audio_prefix"]
+	$(".lang_icon").attr("src",lang_icon);
+
+	fname="txt/verbs-"+arabic_var+"-data.json"
+	read_file(fname,function(obj1){
+		//console.log(obj1)
+		game_data=obj1
+		// verb_id_list verb_dict
+		verb_id_list=[]
+		for (verb0 of game_data){
+			console.log(verb0)
+			verb_id_list.push(verb0.id)
+			verb_dict[verb0.id]=verb0
+		}
+		loading.loaded_data=true
+		//prepare_questions()
+		$$("lang_loading_btn").hidden=true
+		show_screen("main_menu")
+		//go2menu()
+	})	
+}
+
 function select_arabic(obj1){
 	console.log(obj1.name)
+	
 	nav_dict.arabic_var=obj1.name
+	arabic_var=obj1.name
+
+	load_arabic()
+
+
 	set_local_strorage(app_name,"nav_dict",nav_dict)
 	go2menu()
 }
@@ -1204,6 +1198,12 @@ function go2settings(){
 	show_screen("settings_div")
 }
 
+function go2selection(){
+	show_screen("arabic_selection_menu")
+}
+
+
+
 function go2progress(){
 	show_screen("progress_div")
 	tmp_overall_analysis_obj=accuracy[arabic_var]["overall"]
@@ -1327,22 +1327,36 @@ function login_success(){
     </div>
     <div class="col-sm-8 text-center" id="main_div" >
     	<div id="intro_div" class="screen" style="background-color:lavender;height: 500px">
+    		<img src="img/icons/lego.png" height="50px" />
 	      <h5>ALIF Verbs</h5>
-	      <p>Learn Verbs in Arabic and in Dialects!</p>
-	      <p><button class="btn btn-primary btn-block" onclick="go2menu()" hidden>Continue</button></p>
+	      <p>Learn Verbs in Standard Arabic and in Dialects!</p>
+	      
+<!-- 	      <h5>ALIF Apps</h5>
+	      <h6>Arabic Learning Is Fun</h6> -->
 
 	      <p><img id="champolu_logo" src="img/champolu_logo.png" height="100px" /></p>
-	      <button class="buttonload">
+<!-- 	      <h7>ALIF Apps: Arabic Learning Is Fun</h7> -->
+	      <p><button id="continue2menu" class="btn btn-primary w-75" onclick="go2menu()">Continue</button></p>
+<!-- 	      <button class="buttonload">
 		  <i class="fa fa-spinner fa-spin"></i>Loading
-		</button>
+		</button> -->
 
     	</div>
     	<div id="arabic_selection_menu" class="screen" style="background-color:lavender;height: 500px">
 	      <h5>Which Arabic to learn?</h5>
-	      <p><button class="btn btn-primary btn-block" name="msa" onclick="select_arabic(this)" hidden>Modern Standard Arabic</button></p>
-	      <p><button class="btn btn-primary btn-block" name="ega" onclick="select_arabic(this)">Egyptian Arabic</button></p>
+	      <button class="buttonload" id="lang_loading_btn" hidden>
+		  	<i class="fa fa-spinner fa-spin"></i>Loading
+			</button>
+
+	      <p><button class="btn btn-primary w-75" name="msa" onclick="select_arabic(this)">Modern Standard Arabic
+	      	<img src="img/arabic.svg" height="25px">
+	      </button></p>
+	      <p><button class="btn btn-primary w-75" name="eg_ar" onclick="select_arabic(this)">Egyptian Arabic
+	      	<img src="img/egypt.svg" height="25px">
+	      </button></p>
     	</div>
 
+    	<!-- Main Menu -->
     	<div id="main_menu" class="screen" style="background-color:lavender;height: 500px"> 
     		<div class="row">
     			<div class="col text-left">
@@ -1361,7 +1375,7 @@ function login_success(){
     		<div class="col">
     			<span id="lang_name" class="small" hidden>Egyptian Arabic</span>
     			<img id="lang_flag" src="img/egypt.svg" height="25px" hidden/>
-    			<button class="btn btn-primary btn-sm"><img id="lang_flag" src="img/egypt.svg" height="25px"></button>
+    			<button class="btn btn-primary btn-sm" onclick="go2selection()"><img class="lang_icon" id="lang_flag" src="img/egypt.svg" height="25px"></button>
     		</div>
     		<div class="col"></div>
     	</div>
@@ -1820,7 +1834,7 @@ function login_success(){
 	    });
 	  }
 
-function statusChangeCallback(response) {
+	function statusChangeCallback(response) {
     // body...
     if(response.status === 'connected'){
       // setElements(true);
@@ -1857,34 +1871,20 @@ function statusChangeCallback(response) {
   }
 
 
-function google_logout() {
-    gapi.auth2.getAuthInstance().signOut().then(function () {
-      console.log('User signed out.');
-      location.reload();
-    });
+	function google_logout() {
+	    gapi.auth2.getAuthInstance().signOut().then(function () {
+	      console.log('User signed out.');
+	      location.reload();
+	    });
 
-}
-
-  
-	  
-
-  //   function getUserInfo() {
-  //   // body...
-  //   userId=FB.getUserID()
-  //   FB.api(
-  //     '/'+userId+'/?fields=id,name,email',
-  //     'GET',
-  //     {},
-  //     function(response) {
-  //       // Insert your code here
-  //       console.log(response);
-  //       let email = response.email;
-  //       //loginViaEmail(email);
-  //     }
-  //   );
-  // }
-
+	}
       </script>
+
+<!-- For PWA implementation -->
+<!-- </div> -->
+  <script src="js/pwa_main.js"></script>
+
+
 
 </body>
 </html>
