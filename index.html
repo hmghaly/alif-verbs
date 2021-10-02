@@ -96,6 +96,7 @@ var arabic_var=null //"msa" //ega lva sya lba maa saa gla iqa kwa lya sda dza tn
 //arabic_var="eg_ar"
 //arabic_var="msa"
 var cur_screen=null
+var debug_mode=false;
 
 var user={}
 var quiz={}
@@ -152,6 +153,9 @@ var accuracy=get_local_strorage(app_name,"accuracy")
 if (accuracy==null || accuracy==undefined) accuracy={}
 
 function reset_accuracy(){set_local_strorage(app_name,"accuracy",{})}
+
+
+
 // if (accuracy.overall==null) accuracy.overall={}
 // if (accuracy.current==null) accuracy.current={}
 
@@ -319,7 +323,7 @@ function prepare_conjugation(verb_id){
 				if (ar_tense=="active") en_vp= en_forms["-ing"]
 				en_full=pronoun0+" "+en_vp
 				ar_form0=cur_form_obj[pronoun0]
-				console.log(en_full,ar_form0)
+				//console.log(en_full,ar_form0)
 				cur_temp_div=create_el_basic("div",cur_conj_div)
 				cur_temp_div.innerHTML="<b>"+en_full+"</b><br>"+ar_form0[0]+"<br>"+ar_form0[1]+"<br>"
 				cur_temp_div.className="col-sm-4"
@@ -352,7 +356,7 @@ function prepare_tutorial(){
 	tutorial_content=$$("tutorial_content")
 	for (const v_obj of game_data.slice(0,10)){
 		conj_list=[]
-		console.log(v_obj)
+		//console.log(v_obj)
 		en_forms=v_obj["english"]
 		en_base=en_forms.base
 		cur_verb_div=create_el_basic("div",tutorial_content)
@@ -391,7 +395,7 @@ function prepare_tutorial(){
 				if (ar_tense=="active") en_vp= en_forms["-ing"]
 				en_full=pronoun0+" "+en_vp
 				ar_form0=cur_form_obj[pronoun0]
-				console.log(en_full,ar_form0)
+				//console.log(en_full,ar_form0)
 				cur_temp_div=create_el_basic("div",cur_conj_div)
 				cur_temp_div.innerHTML="<b>"+en_full+"</b><br>"+ar_form0[0]+"<br>"+ar_form0[1]+"<br>"
 				cur_temp_div.className="col-sm-4"
@@ -438,13 +442,13 @@ function prepare_questions(cur_verb_ids){
 	for (const v_id of cur_verb_ids){
 		v_obj=verb_dict[v_id]
 		conj_list=[]
-		console.log("verb_id",v_id)
-		console.log(v_obj)
+		//console.log("verb_id",v_id)
+		//console.log(v_obj)
 		en_forms=v_obj["english"]
 		ar_forms=v_obj["forms"]
 		num0=v_obj["number"]
 		id0=v_obj["id"]
-		console.log(en_forms)
+		//console.log(en_forms)
 		for (ar_tense of Object.keys(ar_forms)){
 			cur_form_obj=ar_forms[ar_tense]
 			//console.log(ar_tense,cur_form_obj)
@@ -634,6 +638,27 @@ function init(){
 	gsap.fromTo("#continue2menu", {opacity: 0}, {opacity: 1, duration: 4});
 	arabic_var=nav_dict.arabic_var
 
+	if (debug_mode) {
+		$$("debug_btn").hidden=false;
+		//to show debug/console messages in debug div debugDiv
+		console.log("debug test")
+		if (typeof console  != "undefined") 
+		    if (typeof console.log != 'undefined')
+		        console.olog = console.log;
+		    else
+		        console.olog = function() {};
+
+		console.log = function(message) {
+			//alert(str(message))
+		    console.olog(message);
+		    $('#debugDiv').append('<p>' + str(message) + '</p>');
+		};
+		console.error = console.debug = console.info =  console.log
+
+
+	}  
+
+
 	//gsap.from("continue2menu", {scaleX:0.1, scaleY:0.1}).to("continue2menu", {duration: 4, scaleX:2, scaleY:2});
 
 	//fname="txt/verbs-eg-data.json" //this should go after selecting which Arabic
@@ -694,7 +719,8 @@ function show_screen(screen_id){
 
 function go2menu(){
 	$(".screen").hide()
-	
+
+	show_screen("main_menu")
 	if (nav_dict.arabic_var!=null) {
 		load_arabic()
 		nav_dict.screen="main_menu" //show_screen("main_menu")
@@ -925,7 +951,7 @@ function load_arabic(){
 		// verb_id_list verb_dict
 		verb_id_list=[]
 		for (verb0 of game_data){
-			console.log(verb0)
+			//console.log(verb0)
 			verb_id_list.push(verb0.id)
 			verb_dict[verb0.id]=verb0
 		}
@@ -1788,23 +1814,25 @@ function login_success(){
 </div>
 
 
+
+
     <script>
     	//Google amd Facebook functions - login/logout
       function onSignIn(googleUser) {
         // Useful data for your client-side scripts:
-        console.log(googleUser)
+        //console.log(googleUser)
         var profile = googleUser.getBasicProfile();
-        console.log(profile)
+        //console.log(profile)
         console.log("ID: " + profile.getId()); // Don't send this directly to your server!
         console.log('Full Name: ' + profile.getName());
         console.log('Given Name: ' + profile.getGivenName());
         console.log('Family Name: ' + profile.getFamilyName());
-        console.log("Image URL: " + profile.getImageUrl());
+        //console.log("Image URL: " + profile.getImageUrl());
         console.log("Email: " + profile.getEmail());
 
         // The ID token you need to pass to your backend:
         var id_token = googleUser.getAuthResponse().id_token;
-        console.log("ID Token: " + id_token);
+        //console.log("ID Token: " + id_token);
       }
     </script>
 <!--       <script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script> -->
@@ -1883,6 +1911,37 @@ function login_success(){
 <!-- For PWA implementation -->
 <!-- </div> -->
   <script src="js/pwa_main.js"></script>
+
+  <!-- Button to Open the Modal -->
+<button type="button" id="debug_btn" class="btn btn-primary" data-toggle="modal" data-target="#degugModal" hidden>
+  Debug
+</button>
+
+<!-- The Modal -->
+<div class="modal" id="degugModal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h4 class="modal-title">Debug</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+
+      <!-- Modal body -->
+      <div class="modal-body">
+        <div id="debugDiv"></div>
+      </div>
+
+      <!-- Modal footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
 
 
