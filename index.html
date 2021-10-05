@@ -154,6 +154,24 @@ if (accuracy==null || accuracy==undefined) accuracy={}
 
 function reset_accuracy(){set_local_strorage(app_name,"accuracy",{})}
 
+function reset_storage(){
+	localStorage.setItem(app_name, "{}");
+	//for (key0 of Object.keys())
+}
+
+function reset_confirm(){
+	var r_confirm = confirm("Are you sure you want to reset history?");
+	if (r_confirm == true) {
+	  // txt = "You pressed OK!";
+	  console.log("reset history")
+	  reset_storage()
+	  alert("Reset Successful")
+	  go2menu()
+	} else {
+		console.log("cancel reset")
+	  //txt = "You pressed Cancel!";
+	}
+}
 
 
 // if (accuracy.overall==null) accuracy.overall={}
@@ -1667,7 +1685,13 @@ function login_success(){
 
 
 	      <button class="btn btn-primary w-75 m-1" onclick="update_settings()">Update Settings</button>
-	      <button class="btn btn-danger w-75 m-1" onclick="go2menu()">Discard Changes</button>
+	      <button class="btn btn-warning w-75 m-1" onclick="go2menu()">Discard Changes</button>
+	      <br><hr><br>
+	      <p>
+	      	<button class="btn btn-danger w-25 m-1" onclick="reset_confirm()">Reset History <img src="img/warning.png" height="25px" /></button>	      
+	      </p>
+			
+	      
 
     	</div>  
 
